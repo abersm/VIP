@@ -1,0 +1,5 @@
+source(system.file("data-raw", "data_ve.R", package = "VIP"))
+source(system.file("data-raw", "data_ae.R", package = "VIP"))
+source(system.file("data-raw", "data_epi.R", package = "VIP"))
+source(system.file("data-raw", "data_coadmin.R", package = "VIP"))
+source(system.file("data-raw", "data_domain.R", package = "VIP"))
