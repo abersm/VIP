@@ -4,6 +4,20 @@
 #' @param x,y Categorical variables that will form x and y axis, respectively. Enter as length 1 character vectors
 #' @param color_var Variable used to determine fill color of table. Default is `"n"`. Enter as length 1 character vectors
 #' @param color_min,color_max Minimum and maximum values for continuous color scale. Enter as length 1 character vectors of hexadecimal codes or color names
+#' @param x_axis_label_angle Angle for x axis tick labels
+#' @param x_axis_title Title for x axis
+#' @param x_axis_pos Position for x axis labels. Default is `"top"`
+#' @param y_axis_title Title for y axis
+#' @param font_size Font size for number of studies
+#' @param na.rm If `TRUE`, missing levels are removed from factor variables
+#' @param show_missing_x,show_missing_y,show_empty_levels If `TRUE`, all levels of axis variables will be displayed. If `FALSE`, only levels with studies will be displayed in plot
+#' @param show_zeros If `TRUE`, cells with no studies will be displayed as "0". If `FALSE`, no 0 is displayed is these cells
+#' @param show_legend If `TRUE`, legend is displayed. Default is `FALSE`
+#' @param legend_title Title for legend
+#' @param facet Facet call. For example, calls to `ggplot2::facet_wrap` or `ggplot2::facet_grid`
+#' @param aspect_ratio Aspect ratio for plot
+#' @param plot_margin Plot margins
+#' @param ... Not used
 #' @returns ggplot object
 #' @export
 plot_crosstable <- function(
@@ -43,11 +57,11 @@ plot_crosstable <- function(
     df <- df[!is.na(df$.y), , drop = FALSE]
   }
   if (show_empty_levels) {
-    df <- dplyr::count(df, .x, .y)
+    df <- dplyr::count(df, .data$.x, .data$.y)
     if (x == "virus") {
       df$.x <- as.character(df$.x)
       for (i in setdiff(c("COVID", "RSV", "Influenza"), unique(df$.x))) {
-        df <- bind_rows(df, df[1L, ])
+        df <- dplyr::bind_rows(df, df[1L, ])
         z <- nrow(df)
         df$.x[z] <- i
         df$n[z] <- NA_integer_
@@ -57,7 +71,7 @@ plot_crosstable <- function(
     if (y == "virus") {
       df$.y <- as.character(df$.y)
       for (i in setdiff(c("COVID", "RSV", "Influenza"), unique(df$.y))) {
-        df <- bind_rows(df, df[1L, ])
+        df <- dplyr::bind_rows(df, df[1L, ])
         z <- nrow(df)
         df$.y[z] <- i
         df$n[z] <- NA_integer_
@@ -66,7 +80,7 @@ plot_crosstable <- function(
     }
   } else {
     df <- droplevels(df)
-    df <- dplyr::count(df, .x, .y)
+    df <- dplyr::count(df, .data$.x, .data$.y)
   }
   df$perc_rank <- dplyr::percent_rank(df$n)
   if (color_min != color_max) {
@@ -137,10 +151,17 @@ plot_crosstable <- function(
     facet
 }
 
+#' Version of `plot_crosstable` that uses separate colors for each virus
+#'
+#' @inheritParams plot_crosstable
+#' @param colors Named vector of colors for each virus
+#' @returns ggplot object
+#' @export
 plot_crosstable2 <- function(
     df,
     x = "virus",
     y = "domain",
+    colors = c(COVID = "#619150", RSV = "#366895", Influenza = "#F1C232"),
     na.rm = TRUE,
     show_missing_x = FALSE,
     show_missing_y = FALSE,
@@ -157,15 +178,13 @@ plot_crosstable2 <- function(
     aspect_ratio = NULL,
     ...) {
   if (any(names(df) == "vax_product") && (identical(x, "vax_product") || identical(y, "vax_product"))) {
-    if (identical(x, "vax_product")) {
+    if (is.null(plot_margin) && identical(x, "vax_product")) {
       plot_margin <- ggplot2::margin(r = 50)
     }
     df <- df[df$vax_product != "Other", , drop = FALSE]
   }
-  #colors <- c(COVID = "#D9EAD3", RSV = "#CFE2F3", Influenza = "#FFF2CC")
-  colors <- c(COVID = "#619150", RSV = "#366895", Influenza = "#F1C232")
   df$.x <- if (is.null(x))  "" else df[[x]]
-  df$.y <- if (is.null(x)) "" else df[[y]]
+  df$.y <- if (is.null(y)) "" else df[[y]]
   x <- x %||% ""
   if (!show_missing_x) {
     df <- df[!is.na(df$.x), , drop = FALSE]
@@ -174,10 +193,10 @@ plot_crosstable2 <- function(
     df <- df[!is.na(df$.y), , drop = FALSE]
   }
   if (show_empty_levels) {
-    df <- dplyr::count(df, virus, .x, .y)
+    df <- dplyr::count(df, .data$virus, .data$.x, .data$.y)
     df$virus <- as.character(df$virus)
     for (i in setdiff(c("COVID", "RSV", "Influenza"), unique(df$virus))) {
-      df <- bind_rows(df, df[1L, ])
+      df <- dplyr::bind_rows(df, df[1L, ])
       z <- nrow(df)
       df$virus[z] <- i
       if (x == "virus") {
@@ -197,7 +216,7 @@ plot_crosstable2 <- function(
     }
   } else {
     df <- droplevels(df)
-    df <- dplyr::count(df, virus, .x, .y)
+    df <- dplyr::count(df, .data$virus, .data$.x, .data$.y)
   }
   #df$alpha <- dplyr::percent_rank(df$n)
   n <- df$n
@@ -224,7 +243,7 @@ plot_crosstable2 <- function(
   }
   df$.fill <- fill_color <- unname(colors[df$virus])
   df$text_color <- vapply(seq_along(fill_color), function(i) {
-    tryElse(abers::clr_alpha_filter(fill_color[i], alpha = fill_alpha[i]), "#FFFFFF")
+    tryElse(.clr_alpha_filter(fill_color[i], alpha = fill_alpha[i]), "#FFFFFF")
   }, character(1), USE.NAMES = FALSE)
   df$text_color <- .clr_text(df$text_color)
   ggplot2::ggplot(df, ggplot2::aes(x = .data$.x, y = .data$.y, fill = .data$.fill, alpha = alpha)) +

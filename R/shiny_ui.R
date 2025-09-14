@@ -21,18 +21,21 @@ vert_break <- function(color = "black", thickness = "1px", linetype = "solid", .
 #' @param value If `FALSE` (default), switch is initialized in off state
 #' @param disabled If `TRUE`, switch is initialized in disabled state
 #' @param border_radius Radius for switch. Default is `"2em"`
+#' @param right_align If `TRUE`, switch and label will be right aligned. Default is `FALSE`
 #' @returns shiny.tag object. Enter as input to UI of shiny app. Must use bootstrap 5 theme. In server, `input$inputId` is `TRUE` when switch is on and `FALSE` when switch is off
 #' @noRd
 switchInput <- function(
     inputId = "switch",
     label = "",
-    on_color = "#0D6EFD",
+    on_color = "#246A87",
     off_color = "#BFBFBF",
     height = "16px",
     width = "32px",
     value = FALSE,
     disabled = FALSE,
-    border_radius = "2em") {
+    border_radius = "2em",
+    right_align = FALSE,
+    ...) {
   on_color <- col2hex(on_color)
   svg_circle <- function(color) {
     color <- if (startsWith(color, "#")) {
@@ -77,19 +80,25 @@ switchInput <- function(
   if (disabled) {
     toggle_switch$attribs$disabled <- NA
   }
-  #shiny::tagList(
+  switch_class <- "form-check form-switch"
+  if (right_align) {
+    switch_class <- paste(switch_class, "form-check-reverse")
+  }
   shiny::div(
     shiny::singleton(shiny::tags$head(shiny::tags$style(shiny::HTML(css_code)))),
     shiny::div(
       class = "form-group shiny-input-container",
       shiny::div(
-        class = "form-check form-switch",
+        class = switch_class,
         toggle_switch,
-        shiny::tags$label(
-          class = "form-check-label",
-          `for` = inputId,
-          label
-        )
+        label,
+        ...
+        # Removed below
+        #shiny::tags$label(
+        #  class = "form-check-label",
+        #  `for` = inputId,
+        #  label
+        #)
       )
     )
   )
@@ -148,10 +157,10 @@ colorPickerMac <- function(inputId = "color", value = "#FFFFFF", ...) {
 #' @param inputId Input id
 #' @param value Initial color selected. Default is `"#FFFFFF"`
 #' @param show_recent If `TRUE` (default), recent colors are displayed in color picker. If `FALSE`, recent colors are not displayed in color picker
-#' @param show_initial If `TRUE`, prior color selected is compared to currently selected color in color picker. Default is `FALSE`
+#' @param show_initial If `TRUE` (default), color selected when color picker is launched is compared to currently selected color
 #' @param ... Arguments passed to `shiny::tags$input`
 #' @noRd
-colorPicker <- function(inputId = "color_picker", value = "#FFFFFF", show_recent = TRUE, show_initial = FALSE, ...) {
+colorPicker <- function(inputId = "color_picker", value = "#FFFFFF", show_recent = TRUE, show_initial = TRUE, ...) {
   if (!is.null(value)) {
     value <- col2hex(value)
   }
@@ -323,11 +332,52 @@ selectVar <- function(
 #' Tab for study domain
 #'
 #' @noRd
-tab_domain <- function(id_prefix, title = toupper(id_prefix), icon_name = NULL, pills = FALSE, secondary_color = "#A63B86", default_width = "100%", default_height = "400px", sidebar_width = "30%", show_color_picker = FALSE) {
+tab_domain <- function(
+  id = NULL,
+  title = NULL,
+  tab_icon = NULL,
+  pills = FALSE,
+  secondary_color = "#A63B86",
+  default_width = "100%",
+  default_height = "400px",
+  sidebar_width = "30%",
+  show_color_picker = FALSE,
+  plot_column_width = 12,
+  legend_switch = FALSE,
+  resizable_plot = TRUE) {
+  #ns <- NS(id)
+  ns <- function(x) paste(x, id, sep = "_")
+  plot_output <- shiny::plotOutput(outputId = ns("plot"))
+  if (resizable_plot) {
+    plot_output <- shinyjqui::jqui_resizable(plot_output)
+  }
+  if (plot_column_width != 12) {
+    plot_output <- shiny::fluidRow(
+      shiny::column(
+        width = plot_column_width,
+        plot_output
+      ),
+      shiny::column(
+        width = 12 - plot_column_width
+      )
+    )
+  }
+  # Old way
+  #shinyjqui::jqui_resizable(
+  #  shiny::fluidRow(
+  #    shiny::column(
+  #      width = plot_column_width,
+  #      plot_output
+  #    ),
+  #    shiny::column(
+  #      width = 12 - plot_column_width
+  #    )
+  #  )
+  #)
   shiny::tabPanel(
     title = title,
-    icon = shiny::icon(icon_name, verify_fa = FALSE),
-    style = paste0("p-3 border ", if (pills) "rounded ", "border-top-0 rounded-bottom"),
+    icon = tab_icon,
+    style = paste0("p-3 border ", if (pills) "rounded ", "border-top-0 rounded-bottom;"),
     bslib::layout_sidebar(
       sidebar = bslib::sidebar(
         width = sidebar_width,
@@ -336,51 +386,53 @@ tab_domain <- function(id_prefix, title = toupper(id_prefix), icon_name = NULL, 
           bslib::accordion_panel(
             title = "Select data",
             icon = shiny::icon("sliders", verify_fa = FALSE),
-            selectPopulation(inputId = paste0("pop_", id_prefix), label = shiny::tags$strong("Patient population")),
+            selectPopulation(inputId = ns("pop"), label = shiny::tags$strong("Patient population")),
             vert_break(),
-            selectVirus(inputId = paste0("virus_", id_prefix))
+            selectVirus(inputId = ns("virus"))
           ),
           bslib::accordion_panel(
             title = "Select plot variables",
             icon = shiny::icon("chart-bar", verify_fa = FALSE),
-            selectVar(paste0("x_var_", id_prefix), label = shiny::tags$strong("x axis variable"), selected = "virus"),
-            selectVar(paste0("y_var_", id_prefix), label = shiny::tags$strong("y axis variable"), selected = "outcome")
+            selectVar(ns("x_var"), label = shiny::tags$strong("x axis variable"), selected = "virus"),
+            selectVar(ns("y_var"), label = shiny::tags$strong("y axis variable"), selected = "outcome")
           ),
           bslib::accordion_panel(
             title = "Plot style",
             icon = shiny::icon("paint-brush", verify_fa = FALSE),
-            abers::switchInput(inputId = sprintf("show_legend_%s", id_prefix), label = shiny::tags$strong("Show legend"), value = FALSE, on_color = secondary_color),
+            if (legend_switch) switchInput(inputId = ns("show_legend"), label = shiny::tags$strong("Show legend"), value = FALSE, on_color = secondary_color),
             shiny::sliderInput(
-              inputId = sprintf("font_size_%s", id_prefix),
+              inputId = ns("font_size"),
               label = shiny::tags$strong("Font size"),
               min = 0,
-              max = 30,
+              max = 40,
               value = 14,
               step = 0.5
             ),
             shiny::sliderInput(
-              inputId = sprintf("aspect_ratio_%s", id_prefix),
+              inputId = ns("aspect_ratio"),
               label = shiny::tags$strong("Aspect ratio"),
               min = 0.1,
               max = 5,
               value = 1,
               step = 0.1
+            ),
+            incrementorInput(
+              inputId = ns("margin_right"),
+              label = "Pad right margin",
+              button_color = secondary_color,
+              button_text_color = .clr_text(secondary_color)
+            ),
+            incrementorInput(
+              inputId = ns("margin_top"),
+              label = "Pad top margin",
+              button_color = secondary_color,
+              button_text_color = .clr_text(secondary_color)
             )
           )
         )
       ),
-      if (show_color_picker) colorPicker(inputId = sprintf("color_picker_%s", id_prefix), value = secondary_color),
-      shinyjqui::jqui_resizable(
-        shiny::fluidRow(
-          shiny::column(
-            width = 9,
-            shiny::plotOutput(outputId = sprintf("plot_%s", id_prefix))
-          ),
-          shiny::column(
-            width = 3
-          )
-        )
-      )
+      if (show_color_picker) colorPicker(inputId = ns("color_picker"), value = secondary_color),
+      plot_output
     )
   )
 }
@@ -429,4 +481,79 @@ tableTab <- function(
       shinyjqui::jqui_resizable(rhandsontable::rHandsontableOutput(outputId = ns("table"), height = "600px"))
     )
   )
+}
+
+#' Button to increase numeric value in increments
+#'
+#' Functionality from shinyinvoer package
+#' @param button_color Background color of buttons. Default is `"#DFDFDF"`
+#' @param button_text_color Color of plus and minus icons on buttons. Default chooses between black and white based on input to `button_color`
+#' @param button_style CSS style elements for buttons (other than background color and text color)
+#' @param valuebox_style CSS style elements for valuebox (other than font size)
+#' @param border_color Color of button and valuebox outlines. Enter `NULL` to remove. Default is `"#333333"`
+#' @param font_size Font size for number in pixels. Default is `16`
+#' @param label_style Style elements applied to label. Default is `"font-size:1em"`
+#' @returns shiny.tag object. Enter as input to UI of shiny app
+#' @noRd
+incrementorInput <- function(
+    inputId,
+    label = NULL,
+    value = NULL,
+    min = NULL,
+    max = NULL,
+    step = 1,
+    button_color = "#DFDFDF",
+    button_text_color = NULL,
+    button_style = NULL,
+    border_color = "#333333",
+    valuebox_style = NULL,
+    font_size = 16,
+    label_style = "font-size:1em") {
+  button_color <- col2hex(button_color)
+  button_text_color <- if (is.null(button_text_color)) .clr_text(button_color) else col2hex(button_text_color)
+  button_style <- paste0(sprintf("background-color:%s;color:%s;", button_color, button_text_color), button_style)
+  if (is.numeric(font_size)) {
+    font_size <- sprintf("%ipx", font_size)
+  }
+  valuebox_style <- paste0(sprintf("font-size:%s;", font_size), valuebox_style)
+  if (!is.null(border_color)) {
+    border_color <- col2hex(border_color)
+    button_style <- paste0(button_style, sprintf("border: 1px solid %s;", border_color))
+    valuebox_style <- paste0(valuebox_style, sprintf("border-color:%s;", border_color))
+  }
+  input <- shiny::tags$div(
+    class = "incrementor",
+    id = inputId,
+    shiny::tags$label(label, style = label_style),
+    shiny::tags$div(
+      class = "incrementor-control",
+      shiny::tags$button(
+        id = "step-down",
+        shiny::icon("minus", verify_fa = FALSE),
+        style = button_style
+      ),
+      shiny::tags$input(
+        type = "number",
+        min = min,
+        max = max,
+        value = value,
+        step = step,
+        style = valuebox_style
+      ),
+      shiny::tags$button(
+        id = "step-up",
+        shiny::icon("plus", verify_fa = FALSE),
+        style = button_style
+      )
+    )
+  )
+  dependency <- htmltools::htmlDependency(
+    name = "incrementor",
+    version = utils::packageVersion("VIP"),
+    package = "VIP",
+    src = "assets",
+    stylesheet = "css/incrementor.css",
+    script = "js/incrementor.js"
+  )
+  htmltools::attachDependencies(input, dependency)
 }

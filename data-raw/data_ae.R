@@ -5,12 +5,37 @@
 library(tidyr)
 library(dplyr)
 
-# Note from Eric on 8/14/25 for RedCap 335. Add this info to "Comments / data issues" column in google doc
-## Important myocarditis study. Its also extremely complicated — I'm happy to talk through it with whoever is looking at it if anything is confusing and can also input data differently depending on what you think is best. A few general points:
-# They have so much data - we combined myocarditis and pericarditis (since that made sense to me clinically) for raw numbers but left aHR as myocarditis from the tables
-# We left ischemic and hemorrhagic strokes separated but those may need to be condensed
-# The HRs are adjusted for 100K person/years, but event numbers are also there. I wasn't sure if the "no vaccine group" was helpful — because it is adjusted, so without the person year calculation it may not be useful, but we left for now
-# For "booster" - we chose supplementary tables 23 and 24 which are mRNA-1273 or BNT162b2 booster after any primary series (primary series included the Astrazeneca vaccine), but I think that is ok because we are looking at all boosters and this was the best way to capture the total number of events
+# Functions ---------------------------------------------------------------
+
+# Add columns from comments data frame to df_ae data frame
+transfer_if_any <- function(.comments, .x, .transform_new_colnames = function(x) paste0(x, "NOTES"), .verbose = FALSE) {
+  x_names <- names(.x)
+  comments_names <- names(.comments)
+  cols <- intersect(comments_names, x_names)
+  cols <- cols[cols != "id_redcap"]
+  if (length(cols) == 0L) {
+    return(list(x = .x, comments = .comments, new_cols = NULL))
+  }
+  new_colnames <- .transform_new_colnames(cols)
+  if (length(z <- intersect(new_colnames, x_names)) != 0L) {
+    stop(sprintf("The following column names are already present in df_ae: %s", paste(z, collapse = ", ")))
+  }
+  if (any(z <- grepl("notes_notes", new_colnames))) {
+    warning(sprintf("New column name(s) %s will be generated", paste(new_colnames[z], collapse = ", ")))
+  }
+  z <- .comments[c("id_redcap", cols)]
+  names(z)[-1L] <- new_colnames
+  x_new <- left_join(.x, z, by = "id_redcap")
+  if (.verbose) {
+    message(sprintf("Adding the following variables to df_ae: %s", paste(new_colnames, collapse = ", ")))
+  }
+  comments_new <- remove_rows_all_na(.comments[setdiff(comments_names, cols)], -id_redcap)
+  list(
+    x = x_new,
+    comments = comments_new,
+    new_cols = new_colnames
+  )
+}
 
 # Create AE-specific data frame -------------------------------------------
 
@@ -18,75 +43,187 @@ library(dplyr)
 df_ae <- VIP::core |>
   filter(ae == 1) |>
   select(-starts_with(c("ve_", "epi_", "coadmin_")), -c(ve, coadmin, epi))
+names(df_ae)[names(df_ae) == "ae_cov2601"] <- "ae_novavax2601"
 
-# Limit to AE of interest
-#df_ae <- df_ae |> filter(ae_is_of_interest == 1) |> select(-c(ae_other_ae_incl, ae_other))
-
-#df_ae <- remove_constant_cols(df_ae)
 df_ae <- df_ae[!vapply(df_ae, function(x) all(is.na(x)) || length(unique(x)) == 1L, logical(1), USE.NAMES = FALSE)]
+
+# Remove status columns
+df_ae <- df_ae[grepv("^ae_v[0-9]+_complete$", names(df_ae), invert = TRUE)]
+
+# Prepare comments data
+comments <- VIP::comments |>
+  select(-starts_with(c("ve_", "epi_", "coadmin_", "rob_")), -any_of(c("ae_outcome_em_value_7_v2"))) |>
+  filter(id_redcap %in% .env$df_ae$id_redcap) |>
+  remove_rows_all_na(-id_redcap) |>
+  remove_cols_all_na()
+
+# Transfer "vax_product_used_in_study_notes" column from comments to df_ae
+z <- comments |>
+  select(id_redcap, vax_product_used_in_study_notes = ae_vax_product) |>
+  filter(!is.na(vax_product_used_in_study_notes))
+df_ae <- left_join(df_ae, z, by = "id_redcap")
+comments <- comments |>
+  select(-ae_vax_product) |>
+  remove_rows_all_na(-id_redcap)
+remove(z)
+
+# Check for columns present in comments but not df_ae
+#setdiff(names(comments), names(df_ae))
+length(setdiff(names(comments), names(df_ae))) == 0L
 
 # Create long version of data ---------------------------------------------
 
-# All "ae_outcome" variable names should have a "_#_v#" suffix indicating AE outcome and vaccine
+# All outcome-specific variables ("ae_outcome" variables) should have a column name that ends with "_#_v#" suffix indicating AE outcome and vaccine
+
 add_vax_outcome_id <- function(x, idx = grepl("ae_outcome", x, fixed = TRUE)) {
   # Add vax id
-  needs_vax_id <- idx & !grepl("_v[0-9]", x)
+  needs_vax_id <- idx & !grepl("_v[0-9]+$", x)
   x[needs_vax_id] <- paste0(x[needs_vax_id], "_v1")
   # Add outcome id
-  needs_outcome_id <- idx & !grepl("_[0-9]+_v[0-9]", x)
-  x[needs_outcome_id] <- gsub("(_v[0-9])", "_1\\1", x[needs_outcome_id], perl = TRUE)
+  needs_outcome_id <- idx & !grepl("_[0-9]+_v[0-9]+$", x)
+  x[needs_outcome_id] <- gsub("(_v[0-9]+)$", "_1\\1", x[needs_outcome_id], perl = TRUE)
   x
 }
 names(df_ae) <- add_vax_outcome_id(names(df_ae))
+names(comments) <- add_vax_outcome_id(names(comments))
 remove(add_vax_outcome_id)
 
-# All "ae_vax" variable names should have a "v#" suffix indicating vaccine type
+# All vaccine-specific variables ("ae_vax" variables) should have a column name that ends with "v#" suffix indicating vaccine type
 add_vax_id <- function(x, idx = grepl("ae_vax", x, fixed = TRUE)) {
   # Add vax id
-  needs_vax_id <- idx & !grepl("_v[0-9]", x)
+  needs_vax_id <- idx & !grepl("_v[0-9]+$", x)
   x[needs_vax_id] <- paste0(x[needs_vax_id], "_v1")
   x
 }
 names(df_ae) <- add_vax_id(names(df_ae))
+names(comments) <- add_vax_id(names(comments))
 remove(add_vax_id)
 
-# Study-specific variables
+# df_ae has 3 variable categories:
+
+## 1. Variables that are independent of specific vaccine/AE outcome. These are article (study) specific variables
 df_main_cols <- df_ae[grepv("_[0-9]|_v[0-9]", names(df_ae), invert = TRUE)]
-
-# Create a data frame for each vaccine
-suffix <- regmatches(names(df_ae), gregexpr("_[0-9]+_v[0-9]+$", names(df_ae)))
-suffix <- vapply(suffix, function(x) if (length(x) == 0L) NA_character_ else x, character(1), USE.NAMES = FALSE)
-#suffix_vax <- gsub("_[0-9]+_", "", suffix)
-
-#z <- grepv("ae_vax|ae_outcome", names(df_ae))
-z <- names(df_ae)
-has_vax_id <- grepl("v[0-9]+$", z)
-has_outcome_id <- grepl("_[0-9]+_v[0-9]+$", z)
-is_vax_only <- has_vax_id & !has_outcome_id
-# Next line needed because when chopping up data in subsequent steps, a single column could be numeric for one subset and character for another. Need to join them together later using bind_rows
-df_char <- mutate(df_ae, across(everything(), as.character))
-create_rows <- function(x) {
-  suffix_vax <- gsub("_[0-9]+_", "", x)
-  # Vaccine-specific columns
-  vax_colnames <- z[endsWith(z, suffix_vax) & is_vax_only]
-  # Outcome-specific columns
-  outcome_colnames <- z[endsWith(z, x)]
-  out <- cbind(
-    df_main_cols,
-    df_char[vax_colnames],
-    df_char[outcome_colnames]
-  )
-  names(out) <- gsub(x, "", names(out))
-  names(out) <- gsub(suffix_vax, "", names(out))
-  names(out) <- gsub("ae_outcome_", "", names(out))
-  names(out) <- gsub("^ae_", "", names(out))
-  names(out) <- gsub("^[_]+|[_]+$", "", names(out))
-  out
+if (length(intersect(names(df_main_cols), names(comments))) > 1L) {
+  df_main_cols <- transfer_if_any(.comments = comments, .x = df_main_cols)
+  if (length(df_main_cols$new_cols) > 0L && any(df_main_cols$new_cols %in% names(df_ae))) {
+    stop(sprintf("The following columns are already present in df_ae: %", paste(df_main_cols$new_cols, collapse = ", ")))
+  }
+  comments <- df_main_cols$comments
+  df_main_cols <- df_main_cols$x
 }
-ae <- lapply(unique(suffix[!is.na(suffix)]), create_rows)
+
+# NEW starts here
+# Next line needed because when chopping up data in subsequent steps, a single column could be numeric for one subset and character for another. Need to join them together later using bind_rows
+z <- mutate(df_ae, across(-id_redcap, as.character))
+
+## 2. Variables that are vaccine-specific but independent of AE outcome
+#j <- grepv("_[0-9]+_v[0-9]+$", grepv("v[0-9]+$", setdiff(names(df_ae), names(df_main_cols))), invert = TRUE)
+#paste(sort(unique(gsub("_v[0-9]+$", "", j))), collapse = "|")
+df_vax <- z[grepl("ae_vax_comparator|ae_vax_comparator_other|ae_vax_n_outcomes_reported|ae_vax_type|ae_vax_type_other", names(z))]
+df_vax$id_redcap <- z$id_redcap
+if (length(intersect(names(df_vax), names(comments))) > 1L) {
+  df_vax <- transfer_if_any(.comments = comments, .x = df_vax, .transform_new_colnames = function(x) gsub("(ae_vax_comparator_other|ae_vax_comparator|ae_vax_n_outcomes_reported|ae_vax_type_other|ae_vax_type)", "\\1NOTES", x, perl = TRUE))
+  if (length(df_vax$new_cols) > 0L && any(df_vax$new_cols %in% names(df_ae))) {
+    stop(sprintf("The following columns are already present in df_ae: %", paste(df_vax$new_cols, collapse = ", ")))
+  }
+  comments <- df_vax$comments
+  df_vax <- df_vax$x
+  #df_vax$id_redcap <- NULL
+}
+
+## 3. Variables that are both vaccine-specific and AE outcome-specific
+df_vax_outcome <- z[setdiff(names(z), c(names(df_vax), names(df_main_cols)))]
+if (length(grepv("_[0-9]+_v[0-9]+?", names(df_vax_outcome), invert = TRUE) != 0L)) {
+  stop(sprintf("The following columns in df_vax_outcome do not contain _#_v# suffix: %s", paste(grepv("_[0-9]+_v[0-9]+?", names(df_vax_outcome), invert = TRUE), collapse = ", ")))
+}
+df_vax_outcome$id_redcap <- z$id_redcap
+
+if (length(intersect(names(df_vax_outcome), names(comments))) > 1L) {
+  df_vax_outcome <- transfer_if_any(.comments = comments, .x = df_vax_outcome, .transform_new_colnames = function(x) sub("(.*?)(?=(_v[0-9]|_[0-9]))", "\\1NOTES", x, perl = TRUE))
+  if (length(df_vax_outcome$new_cols) > 0L && any(df_vax_outcome$new_cols %in% names(df_ae))) {
+    stop(sprintf("The following columns are already present in df_ae: %", paste(df_vax_outcome$new_cols, collapse = ", ")))
+  }
+  if (any(idx <- !grepl("NOTES_v?[0-9]", df_vax_outcome$new_cols))) {
+    stop(sprintf("The following columns do not contain 'NOTES' followed by _# or _v# pattern", paste(df_vax_outcome$new_cols[idx])))
+  }
+  comments <- df_vax_outcome$comments
+  df_vax_outcome <- df_vax_outcome$x
+  #df_vax_outcome$id_redcap <- NULL
+}
+
+# Check that row order is identical in df_ae, df_main_cols, df_vax, and df_vax_outcome
+if (length(unique(list(df_ae$id_redcap, df_main_cols$id_redcap, df_vax$id_redcap, df_vax_outcome$id_redcap))) != 1L) {
+  stop("Rows are not identifcal for df_ae, df_main_cols, df_vax, and df_vax_outcome")
+} else {
+  # Remove id_redcap column from df_vax and df_vax_outcome
+  df_vax$id_redcap <- df_vax_outcome$id_redcap <- NULL
+}
+
+# Review df_vax_outcome to make sure all column names end in v#
+#grepv("_[0-9]|_v[0-9]", names(df_vax_outcome), invert = TRUE)
+length(grepv("v[0-9]", names(df_vax_outcome), invert = TRUE)) == 0L
+
+# Check if comments contains any additional columns (other than id_redcap)
+length(setdiff(names(comments), "id_redcap")) == 0L
+
+# Remove "ae_" prefix from columns in df_main_cols and df_vax to facilitate future pivoting
+names(df_main_cols) <- gsub("^ae_", "", names(df_main_cols))
+#names(df_vax) <- gsub("ae_complete", "vax_complete", names(df_vax))
+names(df_vax) <- gsub("^ae_", "", names(df_vax))
+
+# Create ae data frame
+## Loop through vax/outcome endings
+vax_outcomes <- unique(unlist(regmatches(names(df_vax_outcome), gregexpr("_[0-9]+_v[0-9]+$", names(df_vax_outcome))), use.names = FALSE))
+ae <- mapply(
+  function(x, y) {
+    out <- cbind(
+      df_main_cols,
+      df_vax[endsWith(names(df_vax), y)],
+      df_vax_outcome[endsWith(names(df_vax_outcome), x)]
+    )
+    names(out) <- gsub(x, "", names(out))
+    names(out) <- gsub(y, "", names(out))
+    names(out) <- gsub("ae_outcome_", "", names(out))
+    names(out) <- gsub("^ae_", "", names(out))
+    names(out) <- gsub("^[_]+|[_]+$", "", names(out))
+    out
+  },
+  # vax/outcome endings
+  x = vax_outcomes,
+  # vax endings
+  y = vapply(regmatches(vax_outcomes, gregexpr("_v[0-9]+$", vax_outcomes)), function(z) z[1L], character(1), USE.NAMES = FALSE),
+  SIMPLIFY = FALSE
+)
 ae <- bind_rows(ae)
 
-remove(df_char, df_main_cols, has_outcome_id, has_vax_id, is_vax_only, suffix, z, create_rows)
+# Rename columns
+#names(ae) <- gsub("EMstatOther", "em_stat_other", names(ae), fixed = TRUE)
+#names(ae) <- gsub("EMstat", "em_stat", names(ae), fixed = TRUE)
+#names(ae) <- gsub("EMadj", "em_adj", names(ae), fixed = TRUE)
+#names(ae) <- gsub("EMCI", "em_ci", names(ae), fixed = TRUE)
+#names(ae) <- gsub("EM", "em", names(ae), fixed = TRUE)
+#names(ae) <- gsub("UnvaxTotal", "n_unvaccinated_total", names(ae), fixed = TRUE)
+#names(ae) <- gsub("UnvaxWithOutcome", "n_unvaccinated_with_outcome", names(ae), fixed = TRUE)
+#names(ae) <- gsub("VaxTotal", "n_vaccinated_total", names(ae), fixed = TRUE)
+#names(ae) <- gsub("VaxWithOutcome", "n_vaccinated_with_outcome", names(ae), fixed = TRUE)
+
+# Clean data --------------------------------------------------------------
+
+# Convert columns to their proper type (must run this line before subsequent steps)
+ae <- utils::type.convert(ae, as.is = TRUE)
+
+# Convert "NOTES" in column names to "_notes"
+z <- gsub("NOTES", "_notes", names(ae), fixed = TRUE)
+z <- gsub("[_]+", "_", z)
+
+if (anyDuplicated(z)) {
+  stop(sprintf("The following columns in ae already exist: %s", paste(z[duplicated(z)], collapse = ", ")))
+}
+names(ae) <- z
+
+# Place "notes" columns immediately after their parent column
+
+remove(comments, df_main_cols, df_vax, df_vax_outcome, idx, transfer_if_any, vax_outcomes)
 
 # Clean output ------------------------------------------------------------
 
@@ -105,14 +242,19 @@ ae <- ae |>
     vax_type = ifelse(is.na(vax_type), vax_type_other, vax_type),
     vax_type = case_when(
       is.na(vax_type) ~ vax_type_other,
-      vax_type == "COVID - other" & vax_type_other %in% c("COVID - mRNA vaccine") ~ vax_type_other,
+      vax_type == "COVID - other" & vax_type_other %in% c("COVID - mRNA vaccine", "COVID - mRNA vaccines", "Pfizer and Moderna Combined", "Co-admin of bivalent COVID-19 mRNA vaccines and seasonal inactivated influenza vaccines") ~ "COVID - mRNA vaccines",
+      covid == 1 & flu == 0 & rsv == 0 & vax_type %in% c("COVID - other", "Multiple") & vax_type_notes %in% c("Extracting the pooled pfizer/moderna data due to lack incidence rate data", "mRNA vaccines for SARS-CoV-2, such as BNT162b2 (BioNTech-Pfizer) and. mRNA-1273 (Moderna)") ~ "COVID - mRNA vaccines",
       vax_type == "Influenza - other" & vax_type_other %in% c("Influenza - IIV") ~ vax_type_other,
       vax_type == "Influenza - other" & vax_type_other %in% c("Influenza - mRNA-1083", "Influenza - mRNA-1010") ~ "Influenza - mRNA vaccines",
       vax_type_other == "COVID - BNT162b2_BA4.5" ~ "COVID - BNT162b2",
+      vax_type == "COVID - other" & vax_type_other %in% c("BNT162b2 BA.4.5 vaccine", "BNT162b2 bivalent booster") ~ "COVID - BNT162b2",
+      vax_type == "COVID - other" & vax_type_other %in% c("mRNA-1273 bivalent booster", "mRNA-1273.222 (bivalent COVID)") ~ "COVID - mRNA-1273",
       vax_type == "Multiple" & covid == 0 & rsv == 0 & flu == 1 ~ "Influenza - other",
+      vax_type == "Multiple" & covid == 1 & rsv == 0 & flu == 0 ~ "COVID - other",
+      vax_type == "Multiple" & covid == 0 & rsv == 1 & flu == 0 ~ "RSV - other",
       .default = vax_type
     ),
-    vax_type_notes = ifelse(vax_type_other == vax_type, NA_character_, vax_type_other),
+    vax_type_comments = ifelse(vax_type_other == vax_type, NA_character_, vax_type_other),
     vax = vax_type,
     outcome_original = outcome
   ) |>
@@ -154,8 +296,12 @@ ae <- ae |>
   )
 
 # Remove excess columns and rows
+## Next line remove rows in which outcome is missing
 ae <- ae |>
-  filter(vax_type != "Influenza - mRNA vaccines")
+  filter(
+    #    !(vax_type_notes == "mRNA-1010" & virus == "Influenza")
+    vax_type != "Influenza - mRNA vaccines"
+  )
 
 # Sanity check for covid, rsv, flu columns. Output should be 1 for all
 ae |>
@@ -202,8 +348,10 @@ ae <- ae |>
       tolower(population) %in% c("neonates/newborns") ~ "infant",
       tolower(population) %in% c("adults 60 years and older", "adults 60+") ~ "elder",
       tolower(population) %in% c("50-87 years", "all adults 18+y", "all adults 18+", "adults 18+") ~ "adult/elder",
+      immunocomp == 1 & population %in% c("12y-64y") ~ "child/adult/immunocomp",
       population %in% c("12y-64y") ~ "child/adult",
       population %in% c("Patients 12y+", ">=16 years") ~ "child/adult/elder",
+      population %in% c("All adults in Denmark recommended to receive the 2024-2025 JN.1-co ntaining booster vaccine (ie, those aged 65 years or individuals in high-risk groups)") ~ "elder",
       .default = population
     ),
     across(where(is.character), function(x) ifelse(x == "other", "Other", x))
@@ -211,12 +359,16 @@ ae <- ae |>
 
 # Make sure "outcome_virus" and "virus" are identical
 identical(ae$virus, ae$outcome_virus)
+
 ae |>
   filter(is.na(virus) | is.na(outcome_virus) | virus != outcome_virus) |>
-  distinct(virus, outcome_virus, vax_type, vax_type_notes)|>
+  distinct(virus, outcome_virus, vax_type, vax_type_comments, vax_type_notes)|>
   arrange(virus, vax_type, outcome_virus)
+ae |>
+  filter(
+    (!is.na(virus) & !is.na(outcome_virus) & virus != outcome_virus) | (is.na(virus) & !is.na(outcome_virus))
+  )
 ae$outcome_virus <- NULL
-
 substring(ae$population, 1L, 1L) <- toupper(substring(ae$population, 1L, 1L))
 
 ae <- ae |>
@@ -262,7 +414,7 @@ ae <- ae |>
     # Highly relevant columns
     virus,
     outcome_vax_product,
-    vax_product, vax_type, vax_type_notes,
+    vax_product, vax_type, vax_type_comments,
     population,
     study_design, study_setting,
     outcome, outcome_definition = describe,
@@ -278,7 +430,7 @@ ae <- ae |>
     ## Study specific
     author, pubyear, title, date_start_month, date_start_year, date_end_month, date_end_year, date_notes,
     ## Status
-    exclude, gen_info_status_complete, comments, comments_complete, second_review_yn, second_review_comment,
+    #exclude, gen_info_status_complete, comments, comments_complete, second_review_yn, second_review_comment,
     ## Population specific
     pops_in_study,
     infant, child, adult, elder, preg, immunocomp, population_other, perc_premature,
@@ -289,14 +441,34 @@ ae <- ae |>
     -c(n_vaccines_studied, vax_n_outcomes_reported)
   )
 
+# Move notes columns to be next to parent column
+z <- grepv("_notes$", names(ae))
+move_notes_col <- function(df, notes_col) {
+  df_names <- names(df)
+  col <- gsub("_notes$", "", notes_col)
+  if (!any(idx1 <- df_names == col)) return(df)
+  idx1 <- which(idx1)
+  idx2 <- which(df_names == notes_col)
+  idx_pre <- c(setdiff(seq_len(idx1), idx2), idx2)
+  idx_all <- seq_len(ncol(df))
+  idx <- unique(c(idx_pre, idx_all))
+  df[idx]
+}
+
+for (i in z) {
+  ae <- move_notes_col(ae, i)
+}
+
+# Limit to AE of interest
+#ae <- ae |> filter(is_of_interest == 1)
+#ae <- ae |> select(-c(other_ae_incl, other))
+
 # Data for AE not of interest
-df_ae_not_of_interest <- select(df_ae, id_redcap, id_covidence, reviewer, author, pubyear, study_design, study_setting, infant, child, adult, elder, preg, immunocomp, population_other, population_comment, ae_is_of_interest, ae_not_of_interest, as_other_incl = ae_other_ae_incl, ae_other)
+#df_ae_not_of_interest <- select(df_ae, id_redcap, id_covidence, reviewer, author, pubyear, study_design, study_setting, infant, child, adult, elder, preg, immunocomp, population_other, population_comment, is_of_interest, ae_not_of_interest, as_other_incl = ae_other_ae_incl, ae_other)
 
 # Clean up workspace
-remove(df_ae)
+remove(df_ae, move_notes_col, i, z)
 
 # Export data -------------------------------------------------------------
 
-# Store local version of cleaned AE data (including version in long format with 1 row per vaccine/AE outcome)
-#usethis::use_data(df_ae, overwrite = TRUE)
 usethis::use_data(ae, overwrite = TRUE)

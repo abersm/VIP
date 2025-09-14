@@ -5,11 +5,19 @@ vip_shiny <- function(
     data_stats = NULL,
     primary_color = "#246A87",
     secondary_color = "#A63B86",
+    #slider_color = "#045A8D",
+    slider_color = primary_color,
+    accordion_fill_color = primary_color,
+    accordion_text_color = secondary_color,
+    switch_color = primary_color,
     pills = FALSE,
-    crosstab_fn = plot_crosstable2) {
-  data_ve <- data_ve[data_ve$outcome %!in% c("Other", "Other- non-RSV LRTIs", "Other- composite of severe, critical, and death"), , drop = FALSE]
-  data_ve <- data_ve[data_ve$vax_product != "Other", , drop = FALSE]
-  data_ae <- data_ae[data_ae$vax_product != "Other", , drop = FALSE]
+    crosstab_fn = plot_crosstable2,
+    clean_data = TRUE) {
+  if (clean_data) {
+    data_ve <- data_ve[data_ve$outcome %!in% c("Other", "Other- non-RSV LRTIs", "Other- composite of severe, critical, and death"), , drop = FALSE]
+    data_ve <- data_ve[data_ve$vax_product != "Other", , drop = FALSE]
+    data_ae <- data_ae[data_ae$vax_product != "Other", , drop = FALSE]
+  }
   tab_style <- paste0("p-3 border ", if (pills) "rounded ", "border-top-0 rounded-bottom")
   if (is.null(data_stats)) {
     data_stats <- dplyr::bind_rows(apply(data_ve[c("n_vaccinated_with_outcome", "n_unvaccinated_with_outcome", "n_vaccinated_total", "n_unvaccinated_total")], 1, function(x) {
@@ -43,34 +51,55 @@ vip_shiny <- function(
   ui <- bslib::page_fluid(
     theme = theme,
     header,
-    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".accordion-button{font-size:large;font-weight:bold;color:%s;}", secondary_color)))),
-    shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".accordion-title{font-size:large;font-weight:bold;color:%s;}", secondary_color)))),
-    shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".accordion-icon{font-size:large;font-weight:bold;color:%s;}", secondary_color)))),
-    shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".nav-tabs{--bs-nav-tabs-link-active-color:%s;}", secondary_color)))),
+    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".accordion-button{font-size:large;font-weight:bold;color:%s;}", accordion_text_color)))),
+    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".accordion-title{font-size:large;font-weight:bold;color:%s;}", accordion_text_color)))),
+    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".accordion-icon{font-size:large;font-weight:bold;color:%s;}", accordion_text_color)))),
+    shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".nav-tabs{--bs-nav-link-color:%s;--bs-nav-tabs-link-active-color:%s;}", primary_color, secondary_color)))),
+    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs--shiny .irs-bar{border-top:1px solid %s;border-bottom:1px solid %s;background:%s;}.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single{background-color:%s;}.irs--shiny .irs-handle{background-color:%s;}", slider_color, slider_color, slider_color, slider_color, slider_color)))),
+    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs.irs--shiny .irs-handle:focus-visible, .irs.irs--shiny .irs-handle:active{color:%s;background-color:%s;border-color:%s;}", slider_color, slider_color, slider_color)))),
+    shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs--shiny .irs-handle.state_hover, .irs--shiny .irs-handle:hover{background-color:%s;", slider_color)))),
     shiny::tabsetPanel(
       id = "tabs",
 
-      # Main tab ----------------------------------------------------------------
+      # Study domain ------------------------------------------------------------
       shiny::tabPanel(
         title = "Study domain",
         icon = shiny::icon("database", verify_fa = FALSE),
         style = tab_style,
-        bslib::layout_sidebar(
-          sidebar = bslib::sidebar(
-            width = "30%",
-            selectPopulation(inputId = "pop", label = shiny::tags$strong("Patient population"))
-          ),
-          switchInput(inputId = "show_main", value = FALSE),
-          shinyjqui::jqui_resizable(shiny::plotOutput(outputId = "plot_main"))
+        crosstableUI(
+          id = "domain_tab",
+          primary_color = primary_color,
+          secondary_color = secondary_color,
+          switch_color = switch_color
         )
       ),
-      tab_domain("ve", title = "Vaccine effectiveness", icon_name = "check-circle", secondary_color = secondary_color, default_height = "200px"),
-      tab_domain("ae", title = "Vaccine safety", icon_name = "triangle-exclamation", secondary_color = secondary_color),
+      shiny::tabPanel(
+        title = "Vaccine effectiveness",
+        icon = shiny::icon("check-circle", verfiy_fa = FALSE),
+        style = tab_style,
+        crosstableUI(
+          id = "ve_tab",
+          primary_color = primary_color,
+          secondary_color = secondary_color,
+          switch_color = switch_color
+        )
+      ),
+      shiny::tabPanel(
+        title = "Vaccine safety",
+        icon = shiny::icon("triangle-exclamation", verfiy_fa = FALSE),
+        style = tab_style,
+        crosstableUI(
+          id = "ae_tab",
+          primary_color = primary_color,
+          secondary_color = secondary_color,
+          switch_color = switch_color
+        )
+      ),
       shiny::tabPanel(
         title = "Meta-analysis",
         icon = shiny::icon("chart-gantt", verify_fa = FALSE),
         style = tab_style,
-        shiny::plotOutput(outputId = "plot_forest")
+        shinyjqui::jqui_resizable(shiny::plotOutput(outputId = "plot_forest"))
       ),
       shiny::tabPanel(
         title = "Custom plots",
@@ -78,121 +107,10 @@ vip_shiny <- function(
         style = tab_style,
         plotly::plotlyOutput(outputId = "plot_other")
       )
-      # Stats -------------------------------------------------------------------
-      # shiny::tabPanel(
-      #   title = "Stats",
-      #   style = tab_style,
-      #   #icon = shiny::icon("bar-chart", verify_fa = FALSE),
-      #   icon = shiny::icon("chart-gantt", verify_fa = FALSE),
-      #   bslib::layout_sidebar(
-      #     #shiny::sidebarLayout(
-      #     sidebar = bslib::sidebar(
-      #       #shiny::sidebarPanel(width = 3,
-      #       width = "30%",
-      #       shiny::tags$strong("Plot customization"),
-      #       #shiny::tags$br(),
-      #       #shiny::tags$br(),
-      #       shiny::radioButtons(
-      #         inputId = "stats_group_by",
-      #         label = "Group by:",
-      #         choices = c(
-      #           "Vaccine product" = "vax_product",
-      #           "AE outcome" = "outcome"
-      #         )
-      #       ),
-      #       #shiny::tag("hr", list(style = "border: 1px solid double black;"), .noWS = NULL, .renderHook = NULL),
-      #       shiny::selectInput(
-      #         inputId = "stats_color_var",
-      #         label = "Color points by:",
-      #         choices = c(
-      #           "Vaccine product" = "vax_product",
-      #           "AE outcome" = "outcome",
-      #           "Study design" = "study_design",
-      #           "P < 0.05" = "label",
-      #           "Virus" = "virus",
-      #           "Infant" = "infant",
-      #           "Child" = "child",
-      #           "Adult" = "adult",
-      #           "Elder" = "elder",
-      #           "Preg" = "preg",
-      #           "Immunocomp" = "immunocomp",
-      #           "SOT" = "sot",
-      #           "Solid tumor" = "solid_tumor",
-      #           "Hematologic malignancy" = "heme_malig",
-      #           "Autoimmune" = "autoimmune",
-      #           "HIV (well-controlled)" = "hiv_controlled",
-      #           "HIV (CD4 < 200)" = "hiv_uncontrolled"
-      #         )
-      #       ),
-      #       #shiny::tag("hr", list(style = "border: 1px solid double black;"), .noWS = NULL, .renderHook = NULL),
-      #      switchInput(inputId = "stats_log", label = "Log scale", value = FALSE, on_color = secondary_color),
-      #shiny::tag("hr", list(style = "border: 1px solid double black;"), .noWS = NULL, .renderHook = NULL),
-      #     switchInput(inputId = "stats_flip", label = "Flip axes", value = FALSE, on_color = secondary_color),
-      #shiny::tag("hr", list(style = "border: 1px solid double black;"), .noWS = NULL, .renderHook = NULL),
-      #    switchInput(inputId = "stats_show_legend", label = "Show legend", value = TRUE, on_color = secondary_color),
-      #shiny::tag("hr", list(style = "border: 1px solid double black;"), .noWS = NULL, .renderHook = NULL),
-      #      shiny::sliderInput(
-      #        inputId = "stats_font_size",
-      #        label = "Font size",
-      #        min = 0,
-      #        max = 20,
-      #        value = 10,
-      #        step = 0.5
-      #      ),
-      #      #shiny::tag("hr", list(style = "border: 1px solid double black;"), .noWS = NULL, .renderHook = NULL),
-      #      shiny::sliderInput(
-      #        inputId = "stats_ratio",
-      #        label = "Aspect ratio",
-      #        min = 0.1,
-      #        max = 3,
-      #        value = 0.2,
-      #        step = 0.1
-      #      ),
-      #      #shiny::tag("hr", list(style = "border: 1px solid double black;"), .noWS = NULL, .renderHook = NULL),
-      #      shiny::sliderInput(
-      #        inputId = "stats_point_size",
-      #        label = "Point size",
-      #        min = 0.5,
-      #        max = 6,
-      #        value = 2.5,
-      #        step = 0.5
-      #      ),
-      #      #shiny::tag("hr", list(style = "border: 1px solid double black;"), .noWS = NULL, .renderHook = NULL),
-      #      shiny::selectizeInput(
-      #        inputId = "tooltip_vars",
-      #        label = "Display on hover:",
-      #        choices = tooltip_options,
-      #        selected = tooltip_default,
-      #        multiple = TRUE
-      #      )
-      #    ),
-      #    #shiny::mainPanel(
-      #    #width = 9,
-      #    #bslib::card(height = "200px",
-      #    shinyjqui::jqui_resizable(
-      #      #shiny::plotOutput(outputId = "plot_stats")
-      #      plotly::plotlyOutput(outputId = "plot_stats", height = "200px")
-      #    ),
-      #    #)),
-      #    shiny::tags$br(),
-      #    shiny::wellPanel(selectPopulation("pop_stats"))
-      #  )
-      #)
     )
   )
   server <- function(input, output, session) {
-    # Data
     ## TODO: add input vax to slice_data to allow subsetting by selected vaccine products. Will also need UI support
-    #data_heatmap <- shiny::reactive({
-    #  pops <- unique(tolower(input$pop))
-    #  pops[pops == "pregnant"] <- "preg"
-    #  pops <- intersect(pops, names(df_domain))
-    #  idx <- logical(nrow(df_domain))
-    #  for (i in pops) {
-    #    idx <- idx | df_domain[[i]] == 1
-    #  }
-    #  df_domain[idx, , drop = FALSE]
-    #})
     data_heatmap_ve <- shiny::reactive({
       tryElse(slice_data(x = input$x_var_ve, y = input$y_var_ve, domain = "ve", pop = input$pop_ve, virus = input$virus_ve))
     })
@@ -219,62 +137,25 @@ vip_shiny <- function(
         if (input$x_var == "vax_product" || input$y_var == "vax_product") {
           NULL
         } else {
-          dplyr::distinct(df, id_redcap, virus, domain, .keep_all = TRUE)
+          dplyr::distinct(df, .data$id_redcap, .data$virus, .data$domain, .keep_all = TRUE)
         }
       } else {
         NULL
       }
     })
 
+    # Meta analysis tab
+    #output$plot_forest <- shiny::renderPlot({
+    #})
+
     ## Stats data
     stats <- shiny::reactive({
       NULL
     })
 
-    # Crosstable plots
-    ## Main tab
-    output$plot_main <- shiny::renderPlot({
-      if (input$show_main) {
-        tryElse(plot_domain2(pop = input$pop) + ggplot2::theme(plot.margin = ggplot2::margin(r = 40)))
-      } else {
-        NULL
-      }
-    })
-    ## Domain crosstable plot
-    output$plot_domain <- shiny::renderPlot({
-      tryElse(crosstab_fn(
-        df = domain(),
-        x = if (input$flip) "domain" else input$by_virus_or_vax,
-        y = if (input$flip) input$by_virus_or_vax else "domain",
-        color_max = input$color_picker,
-        show_legend = input$show_legend,
-        font_size = input$font_size
-      ))
-    })
-
-    ## AE tab
-    output$plot_ae <- shiny::renderPlot({
-      tryElse(crosstab_fn(
-        df = data_heatmap_ae(),
-        x = input$x_var_ae,
-        y = input$y_var_ae,
-        color_max = input$color_picker_ae,
-        show_legend = input$show_legend_ae,
-        font_size = input$font_size_ae
-      ))
-    })
-
-    ## VE tab
-    output$plot_ve <- shiny::renderPlot({
-      tryElse(crosstab_fn(
-        df = data_heatmap_ve(),
-        x = input$x_var_ve,
-        y = input$y_var_ve,
-        color_max = input$color_picker_ve,
-        show_legend = input$show_legend_ve,
-        font_size = input$font_size_ve
-      ))
-    })
+    domain_out <- crosstableServer("domain_tab", data_domain)
+    ve_out <- crosstableServer("ve_tab", data_ve)
+    ae_out <- crosstableServer("ae_tab", data_ae)
 
     ## Stats tab
     output$plot_stats <- plotly::renderPlotly({
@@ -342,13 +223,7 @@ vip_shiny <- function(
       p$labels$y <- y_title
       plot_interactive(p, show_legend = input$stats_show_legend)
     })
-
-    # Plot other
-    output$plot_other <- plotly::renderPlotly({
-      #abers::plot_forest(
-      #  ve
-      #)
-    })
   }
+  #bslib::run_with_themer(shiny::shinyApp(ui, server))
   shiny::shinyApp(ui, server)
 }

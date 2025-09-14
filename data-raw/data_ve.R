@@ -5,68 +5,175 @@
 library(tidyr)
 library(dplyr)
 
+# Functions ---------------------------------------------------------------
+
+# Add columns from comments data frame to df_ve data frame
+transfer_if_any <- function(.comments, .x, .transform_new_colnames = function(x) paste0(x, "NOTES"), .verbose = FALSE) {
+  x_names <- names(.x)
+  comments_names <- names(.comments)
+  cols <- intersect(comments_names, x_names)
+  cols <- cols[cols != "id_redcap"]
+  if (length(cols) == 0L) {
+    return(list(x = .x, comments = .comments, new_cols = NULL))
+  }
+  new_colnames <- .transform_new_colnames(cols)
+  if (length(z <- intersect(new_colnames, x_names)) != 0L) {
+    stop(sprintf("The following column names are already present in df_ve: %s", paste(z, collapse = ", ")))
+  }
+  if (any(z <- grepl("notes_notes", new_colnames))) {
+    warning(sprintf("New column name(s) %s will be generated", paste(new_colnames[z], collapse = ", ")))
+  }
+  z <- .comments[c("id_redcap", cols)]
+  names(z)[-1L] <- new_colnames
+  x_new <- left_join(.x, z, by = "id_redcap")
+  if (.verbose) {
+    message(sprintf("Adding the following variables to df_ve: %s", paste(new_colnames, collapse = ", ")))
+  }
+  comments_new <- remove_rows_all_na(.comments[setdiff(comments_names, cols)], -id_redcap)
+  list(
+    x = x_new,
+    comments = comments_new,
+    new_cols = new_colnames
+  )
+}
+
 # Create VE-specific data frame -------------------------------------------
 
-# Remove irrelevant vars
+# Check for studies in which ve == 0 but ve data entered
+#VIP::core %>%
+#  filter(ve == 0) %>%
+#  select(id_redcap, starts_with("ve"), -contains("complete"), -ve) %>%
+#  remove_rows_all_na(-id_redcap)
+
+# Remove irrelevant variables
 df_ve <- VIP::core |>
   filter(ve == 1) |>
-  select(-starts_with(c("ae_", "epi_", "coadmin_")), -c(ae, coadmin, epi, ae_other)) |>
+  select(-starts_with(c("ae_", "epi_", "coadmin_")), -c(ae, coadmin, epi)) |>
   rename(n_vaccines_studied = ve_n_vaccines_studied) |>
   mutate(
     across(where(is.character), function(x) gsub("\002", "", x, fixed = TRUE))
   )
 
-#df_ve <- remove_constant_cols(df_ve)
 df_ve <- df_ve[!vapply(df_ve, function(x) all(is.na(x)) || length(unique(x)) == 1L, logical(1), USE.NAMES = FALSE)]
 
 # Remove unused variables
 df_ve <- df_ve |>
   select(-matches("ve_overall_yn|ve_outcome_n_reported"))
 
+# Prepare comments data
+comments <- VIP::comments |>
+  select(-starts_with(c("ae_", "epi_", "coadmin_", "rob_")), -matches("ve_overall_yn|ve_outcome_n_reported")) |>
+  filter(id_redcap %in% .env$df_ve$id_redcap) |>
+  remove_rows_all_na(-id_redcap)
+
+if (any(names(comments) == "ve_n_vaccines_studied")) {
+  names(comments)[names(comments) == "ve_n_vaccines_studied"] <- "n_vaccines_studied"
+}
+
+# Check for columns present in comments but not df_ve
+length(setdiff(names(comments), names(df_ve))) == 0L
+
 # Add vaccine-specific id ("v#" pattern) to variables with implied "v1"
+## df_ve
 old_names <- names(df_ve)
 needs_vax_id <- grepl("^ve_", old_names) & !grepl("_v[0-9]", old_names)
 names(df_ve)[needs_vax_id] <- paste0(old_names[needs_vax_id], "_v1")
+
+## comments
+old_names <- names(comments)
+needs_vax_id <- grepl("^ve_", old_names) & !grepl("_v[0-9]", old_names)
+names(comments)[needs_vax_id] <- paste0(old_names[needs_vax_id], "_v1")
 remove(old_names, needs_vax_id)
 
 # Review endings
 ## Note: ve_outcome_text and ve_complete variables can have v3 suffix but all other columns that end in v3 also have preceding v2 (i.e., ending is v2_v3)
 setdiff(grepv("_v3", names(df_ve)), grepv("_v2_v3", names(df_ve)))
+setdiff(grepv("_v3", names(comments)), grepv("_v2_v3", names(comments)))
 
 # To fix this, just remove _v2 from _v2_v3 suffix
 names(df_ve) <- gsub("_v2_v3", "_v3", names(df_ve))
+names(comments) <- gsub("_v2_v3", "_v3", names(comments))
 
 # Create long version of data ---------------------------------------------
 
 # Next line needed because when chopping up data in subsequent steps, a single column could be numeric for one subset and character for another. Need to join them together later using bind_rows
-z <- mutate(df_ve, across(everything(), as.character))
+z <- mutate(df_ve, across(-id_redcap, as.character))
 
-# df_ve has 3 categories of variables
-## 1. Variables that are independent of specific vaccine/VE outcome. This are article (study) specific variables
+# df_ve has 3 variable categories:
+
+## 1. Variables that are independent of specific vaccine/VE outcome. These are article (study) specific variables
 df_main_cols <- z[!grepl("_[0-9]|_v[0-9]", names(z))]
+if (length(intersect(names(df_main_cols), names(comments))) > 1L) {
+  df_main_cols <- transfer_if_any(.comments = comments, .x = df_main_cols)
+  if (length(df_main_cols$new_cols) > 0L && any(df_main_cols$new_cols %in% names(df_ve))) {
+    stop(sprintf("The following columns are already present in df_ve: %", paste(df_main_cols$new_cols, collapse = ", ")))
+  }
+  comments <- df_main_cols$comments
+  df_main_cols <- df_main_cols$x
+}
+
 ## 2. Variables that are vaccine-specific but independent of VE outcome
 df_vax <- z[grepl("ve_complete|ve_timeline|ve_comparator|ve_vax", names(z))]
-## 3. Variables that are vaccine-specific and VE outcome-specific
-df_vax_outcome <- z[setdiff(names(z), c(names(df_vax), names(df_main_cols)))]
+df_vax$id_redcap <- z$id_redcap
+if (length(intersect(names(df_vax), names(comments))) > 1L) {
+  df_vax <- transfer_if_any(.comments = comments, .x = df_vax, .transform_new_colnames = function(x) gsub("(ve_comparator_vax|ve_comparator|ve_complete|ve_timeline|ve_vax_other|ve_vax_type)", "\\1NOTES", x, perl = TRUE))
+  if (length(df_vax$new_cols) > 0L && any(df_vax$new_cols %in% names(df_ve))) {
+    stop(sprintf("The following columns are already present in df_ve: %", paste(df_vax$new_cols, collapse = ", ")))
+  }
+  comments <- df_vax$comments
+  df_vax <- df_vax$x
+  #df_vax$id_redcap <- NULL
+}
 
-# Review last category
+## 3. Variables that are both vaccine-specific and VE outcome-specific
+df_vax_outcome <- z[setdiff(names(z), c(names(df_vax), names(df_main_cols)))]
+df_vax_outcome$id_redcap <- z$id_redcap
+if (length(intersect(names(df_vax_outcome), names(comments))) > 1L) {
+  df_vax_outcome <- transfer_if_any(.comments = comments, .x = df_vax_outcome, .transform_new_colnames = function(x) sub("(.*?)(?=(_v[0-9]|_[0-9]))", "\\1NOTES", x, perl = TRUE))
+  if (length(df_vax_outcome$new_cols) > 0L && any(df_vax_outcome$new_cols %in% names(df_ve))) {
+    stop(sprintf("The following columns are already present in df_ve: %", paste(df_vax_outcome$new_cols, collapse = ", ")))
+  }
+  if (any(idx <- !grepl("NOTES_v?[0-9]", df_vax_outcome$new_cols))) {
+    stop(sprintf("The following columns do not contain 'NOTES' followed by _# or _v# pattern", paste(df_vax_outcome$new_cols[idx])))
+  }
+  comments <- df_vax_outcome$comments
+  df_vax_outcome <- df_vax_outcome$x
+  #df_vax_outcome$id_redcap <- NULL
+}
+
+# Check that row order is identical in df_ve, df_main_cols, df_vax, and df_vax_outcome
+if (length(unique(list(df_ve$id_redcap, df_main_cols$id_redcap, df_vax$id_redcap, df_vax_outcome$id_redcap))) != 1L) {
+  stop("Rows are not identifcal for df_ve, df_main_cols, df_vax, and df_vax_outcome")
+} else {
+  # Remove id_redcap column from df_vax and df_vax_outcome
+  df_vax$id_redcap <- df_vax_outcome$id_redcap <- NULL
+}
+
+# Review df_vax_outcome to make sure all column names end in v#
 #grepv("_[0-9]|_v[0-9]", names(df_vax_outcome), invert = TRUE)
-grepv("v[0-9]", names(df_vax_outcome), invert = TRUE)
+length(grepv("v[0-9]", names(df_vax_outcome), invert = TRUE)) == 0L
+
+# Check if comments contains any additional columns (other than id_redcap)
+length(setdiff(names(comments), "id_redcap")) == 0L
 
 # Remove "ve_" prefix from columns in df_main_cols and df_vax to facilitate future pivoting
-#grepv("ve_", names(df_main_cols))
+if (length(grepv("ve_", names(df_main_cols))) != 0L) {
+  names(df_main_cols) <- gsub("ve_complete", "vax_complete", names(df_main_cols))
+  names(df_main_cols) <- gsub("^ve_", "", names(df_main_cols))
+}
+
 names(df_vax) <- gsub("ve_complete", "vax_complete", names(df_vax))
 names(df_vax) <- gsub("^ve_", "", names(df_vax))
 
 # Remove "ve_" prefix from population independent columns in df_vax_outcome
 names(df_vax_outcome) <- gsub("^ve_(outcome|maternalvax|em_stat)", "\\1", names(df_vax_outcome))
 
-# Collapse future column names into after population identifier to facilitate future pivoting
+# Prepare substring in column names that precedes population identifier to facilitate future pivoting
 names(df_vax_outcome) <- gsub("em_stat_other", "EMstatOther", names(df_vax_outcome), fixed = TRUE)
 names(df_vax_outcome) <- gsub("em_stat", "EMstat", names(df_vax_outcome), fixed = TRUE)
 names(df_vax_outcome) <- gsub("em_adj", "EMadj", names(df_vax_outcome), fixed = TRUE)
 names(df_vax_outcome) <- gsub("em_ci", "EMCI", names(df_vax_outcome), fixed = TRUE)
-names(df_vax_outcome) <- gsub("_em_", "_EM_", names(df_vax_outcome), fixed = TRUE)
+names(df_vax_outcome) <- gsub("_em", "_EM", names(df_vax_outcome), fixed = TRUE)
 names(df_vax_outcome) <- gsub("unvax_total", "UnvaxTotal", names(df_vax_outcome), fixed = TRUE)
 names(df_vax_outcome) <- gsub("unvax_with_outcome", "UnvaxWithOutcome", names(df_vax_outcome), fixed = TRUE)
 names(df_vax_outcome) <- gsub("vax_total", "VaxTotal", names(df_vax_outcome), fixed = TRUE)
@@ -74,12 +181,16 @@ names(df_vax_outcome) <- gsub("vax_with_outcome", "VaxWithOutcome", names(df_vax
 
 # Create list of vaccine IDs for each column in df_vax and df_vax_outcome
 vax_suffix <- regmatches(names(df_vax), gregexpr("_v[0-9]+", names(df_vax)))
-all(lengths(vax_suffix) == 1L)
+if (all(lengths(vax_suffix) != 1L)) {
+  stop("1 or more rows in df_vax contain > 1 vaccine ID")
+}
 vax_suffix <- unlist(vax_suffix, use.names = FALSE)
 
 # Create list of vaccine IDs and outcome IDs for each column in df_vax_outcome
 id_vax <- regmatches(names(df_vax_outcome), gregexpr("_v[0-9]+", names(df_vax_outcome)))
-all(lengths(id_vax) == 1L)
+if (!all(lengths(id_vax) == 1L)) {
+  stop("1 or more rows in df_vax_outcome contain > 1 outcome ID")
+}
 id_vax <- unlist(id_vax, use.names = FALSE)
 id_outcome <- regmatches(names(df_vax_outcome), gregexpr("_[0-9]+", names(df_vax_outcome)))
 id_outcome <- vapply(id_outcome, function(x) if (length(x) == 0L) "_1" else x, character(1), USE.NAMES = FALSE)
@@ -91,7 +202,8 @@ names(df_vax_outcome) <- paste0(
   id_vax
 )
 
-# Loop through vax/outcome endings
+# Create ve data frame
+## Loop through vax/outcome endings
 vax_outcomes <- unique(unlist(regmatches(names(df_vax_outcome), gregexpr("_[0-9]+_v[0-9]+$", names(df_vax_outcome))), use.names = FALSE))
 ve <- mapply(
   function(x, y) {
@@ -111,13 +223,15 @@ ve <- mapply(
   SIMPLIFY = FALSE
 )
 
-# Make sure all columns with "ve_" prefix have 3 pieces when plot by "_"
+# Make sure all columns with "ve_" prefix have 3 pieces when split by "_"
 z <- ve |>
   lapply(names) |>
   unlist(use.names = FALSE)
 z <- grepv("^ve", z) |>
   strsplit("_")
-all(lengths(z) == 3L)
+if (!all(lengths(z) == 3L)) {
+  stop("1 or more values in names(ve) do not generate 3 pieces when split by _")
+}
 
 # Pivot each data frame to longer version
 ve <- ve |>
@@ -131,8 +245,10 @@ ve <- ve |>
       values_to = "value",
       values_drop_na = TRUE
     )
-  }) |>
-  bind_rows() |>
+  }) %>%
+  bind_rows()
+
+ve <- ve |>
   pivot_wider(
     names_from = variable,
     values_from = value
@@ -155,7 +271,7 @@ names(ve) <- gsub("VaxWithOutcome", "n_vaccinated_with_outcome", names(ve), fixe
 ve <- utils::type.convert(ve, as.is = TRUE)
 
 # For studies that report "overall" data, enter populations included into "pop" column
-f <- function(x) if (is.na(x)) NULL else x
+#f <- function(x) if (is.na(x)) NULL else x
 ve <- ve |>
   rowwise() |>
   mutate(
@@ -182,7 +298,7 @@ ve <- ve |>
       population == "preg" ~ "Pregnant",
       population %in% c("child", "Children 6 mo - 6 y") ~ "Child",
       population %in% c("Infants birth through 12 months") ~ "Infant/child",
-      population %in% c("Adults 60+") ~ "Elder",
+      population %in% c("Adults 60+", "Adults 80+") ~ "Elder",
       population %in% c("Adults 18+", "All adults 18+", "All non-immunocompromised adults 18+") ~ "Adult/elder",
       population %in% c("Age 1-64 years", "0-64 years", "Infant/child/adult/elder") ~ "All ages",
       population_other %in% c("Adults >=18 years", ">=18 years") ~ "Adult/elder",
@@ -234,7 +350,6 @@ ve <- ve |>
     )
   )
 
-
 # New line added 8/15/25. Per Caitlin. RSV studies administered in pregnancy should be classified as population == "Pregnant", even if outcomes are infant-specific. Except Nirsevimab which should stay with peds
 ve <- ve |>
   mutate(
@@ -271,7 +386,8 @@ ve <- ve |>
     ## Study specific
     author, pubyear, title, date_start_month, date_start_year, date_end_month, date_end_year, date_notes,
     ## Status
-    exclude, vax_complete, gen_info_status_complete, comments, comments_complete, second_review_yn, second_review_comment,
+    #exclude, vax_complete, comments, comments_complete, second_review_yn, second_review_comment,
+    #gen_info_status_complete
     ## Population specific
     pops_in_study,
     infant, child, adult, elder, preg, immunocomp, population_other, perc_premature,
@@ -279,7 +395,7 @@ ve <- ve |>
     population_disagg, population_comment,
     ## Other
     everything(),
-    -c(n_vaccines_studied)
+    -any_of(c("n_vaccines_studied", "second_review_yn", "exclude"))
   )
 
 # Incorporate reclassified "VE other outcome"
@@ -292,17 +408,42 @@ ve <- ve |>
     outcome = ifelse(!is.na(Classification), Classification, outcome),
     outcome = ifelse(outcome == "Hospitalization and/or death", "Hospitalization", outcome),
     population = case_when(
+      id_redcap %in% c(297, 494) ~ paste0(population, "/immunocomp"),
       id_redcap %in% c(2, 5, 12, 14) ~ "Pregnant",
       .default = population
     )
   ) |>
   select(-Classification)
 
+# Convert "NOTES" in column names to "_notes"
+z <- gsub("NOTES", "_notes", names(ve), fixed = TRUE)
+z <- gsub("[_]+", "_", z)
+if (anyDuplicated(z)) {
+  stop(sprintf("The following columns in ve already exist: %s", paste(z[duplicated(z)], collapse = ", ")))
+}
+names(ve) <- z
+
+# Place "notes" columns immediately after their parent column
+z <- grepv("_notes$", names(ve))
+move_notes_col <- function(df, notes_col) {
+  df_names <- names(df)
+  col <- gsub("_notes$", "", notes_col)
+  if (!any(idx1 <- df_names == col)) return(df)
+  idx1 <- which(idx1)
+  idx2 <- which(df_names == notes_col)
+  idx_pre <- c(setdiff(seq_len(idx1), idx2), idx2)
+  idx_all <- seq_len(ncol(df))
+  idx <- unique(c(idx_pre, idx_all))
+  df[idx]
+}
+
+for (i in z) {
+  ve <- move_notes_col(ve, i)
+}
+
 # Clean up workspace
-remove(df_main_cols, df_vax, df_vax_outcome, f, id_outcome, id_vax, vax_outcomes, vax_suffix, z, df_ve)
+remove(df_main_cols, df_vax, df_vax_outcome, id_outcome, id_vax, vax_outcomes, vax_suffix, z, move_notes_col, i, idx, df_ve, transfer_if_any, comments)
 
 # Export data -------------------------------------------------------------
 
-# Store local version of cleaned VE data (including version in long format with 1 row per vaccine/VE outcome)
-#usethis::use_data(df_ve, overwrite = TRUE)
 usethis::use_data(ve, overwrite = TRUE)

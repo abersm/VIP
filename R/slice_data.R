@@ -40,8 +40,8 @@ slice_data <- function(
     }
     df <- df[df$population %in% all_pops, , drop = FALSE]
   }
-  df <- df |>
-    dplyr::mutate(
+  df <- dplyr::mutate(
+      df,
       vax_product = ifelse(vax_product == "Other" & virus == "Influenza", "Influenza - other", vax_product),
       population = dplyr::case_when(
         population == "Infant" & outcome == "MI" ~ "Pregnant",
@@ -94,7 +94,7 @@ slice_data <- function(
   df$virus <- factor(df$virus, levels = .virus_levels)
   vax_levels <- unique(c(.vax_levels, df$vax_product))
   df$vax_product <- factor(df$vax_product, levels = vax_levels)
-  df <- dplyr::distinct(df, id_redcap, .data[[x]], .data[[y]], .keep_all = TRUE)
+  df <- dplyr::distinct(df, .data$id_redcap, .data[[x]], .data[[y]], .keep_all = TRUE)
   df
 }
 

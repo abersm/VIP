@@ -2,23 +2,34 @@ Package: VIP
 Title: R package for the Vaccine Integrity Project
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: Tools to analyze and visualize data on vaccine safety and efficacy
+    person("Michael", "Abers", , "abersm@gmail.com", role = c("aut", "cre"))
+Description: Tools to analyze and visualize data on vaccine efficacy and safety for the Vaccine Integrity Project.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends: 
     R (>= 3.5)
 Imports:
+    base64enc,
     bslib,
     dplyr,
     ggplot2,
+    grDevices,
+    htmltools,
+    meta,
+    metafor,
+    patchwork,
+    plotly,
     rhandsontable,
+    rlang,
+    scales,
     shiny,
     shinyjqui,
     stats,
     tidyr,
     utils,
-    xml2
+    waffle
+Suggests:
+    emojifont
 LazyData: true

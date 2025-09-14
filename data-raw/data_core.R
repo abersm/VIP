@@ -13,9 +13,9 @@ library(dplyr)
 ## Step 1C: click link to export "data labels" as csv file
 
 # Step 2: move csv files into package directory
-## Drag the 2 csv files from steps 1B and 1C into VIP/data-raw folder
+## Drag the 2 csv files from steps 1B-1C into VIP/data-raw folder
 ## csv file that contains DATA LABELS in name: change file name to redcap_labels.csv
-## Other csv file: change file name to redcap_data.csv
+## other csv file that contains DATA in name: change file name to redcap_data.csv
 
 # Step 3: upload data to R
 core <- utils::read.csv(system.file("data-raw", "redcap_data.csv", package = "VIP"))
@@ -294,7 +294,8 @@ ae_outcome_lookup <- c(
 ve_outcome_lookup <- c(
   "1" = "Hospitalization",
   "2" = "Death",
-  "3" = "Hospitalization and/or death",
+  #"3" = "Hospitalization and/or death",
+  "3" = "Hospitalization",
   "4" = "ICU admission",
   "5" = "Medically-attended infection",
   "6" = "School absenteeism",
@@ -337,7 +338,8 @@ maternalvax_lookup <- c(
 # Co-admin outcome
 coadmin_outcome_lookup <- c(
   "1" = "Serologic outcome",
-  "2" = "Safety/adverse events",
+  #"2" = "Safety/adverse events",
+  "2" = "Adverse events",
   "3" = "Other",
   "4" = "None"
 )
@@ -345,7 +347,8 @@ coadmin_outcome_lookup <- c(
 # Co-admin comparison type
 coadmin_comparison_lookup <- c(
   "1" = "Superior",
-  "2" = "Same/noninferior",
+  #"2" = "Same/noninferior",
+  "2" = "Noninferior",
   "3" = "Inferior",
   "4" = "Other",
   "5" = "Not reported"
@@ -370,16 +373,15 @@ core <- core |>
     across(contains("complete"), function(x) {
       if (!is.integer(x) || max(x, na.rm = TRUE) > 2) return(x)
       case_when(
-        x == 0 ~ "Incomplete",
-        x == 1 ~ "Unverified",
-        x == 2 ~ "Complete",
+        x == 0L ~ "Incomplete",
+        x == 1L ~ "Unverified",
+        x == 2L ~ "Complete",
         .default = NA_character_
       )
     }),
     across(c(date_start_month, date_end_month), function(x) ifelse(x == 99, NA_integer_, x)),
     across(where(is.character), function(x) {
       x <- trimws(x)
-      #x <- gsub("%", "", x)
       x[x %in% c("", "9999", "NA")] <- NA_character_
       x
     }),
@@ -410,17 +412,158 @@ core <- core |>
   ) |>
   select(-population_other_incl)
 
-# Check whether perc_premature column can be converted to numeric
-sort(unique(core$perc_premature))
-core$perc_premature <- as.numeric(core$perc_premature)
+# Check for columns containing 999
+#core[, vars_which(core, function(x) any(x == 999, na.rm = TRUE))] %>%  filter(if_any(everything(), function(x) x == 999))
 
-# Remove columns with identical values in all rows (including all missing values)
+# Check whether perc_premature column can be converted to numeric
+#sort(unique(core$perc_premature))
+if (!any(grepl("[A-z]", core$perc_premature), na.rm = TRUE)) {
+  core$perc_premature <- as.numeric(core$perc_premature)
+}
+
+# Remove columns which contain exclusively missing values or identical values in all rows
+#names(core[!vapply(core, function(x) all(is.na(x)) || length(unique(x)) == 1L, logical(1), USE.NAMES = FALSE)])
 core <- core[!vapply(core, function(x) all(is.na(x)) || length(unique(x)) == 1L, logical(1), USE.NAMES = FALSE)]
 
 # Clean up workspace
 remove(ae_comparator_lookup, ae_em_stat_lookup, ae_outcome_lookup, coadmin_comparison_lookup, coadmin_outcome_lookup, design_lookup, lookup_fn, maternalvax_lookup, reviewer_lookup, vax_lookup, ve_comparator_lookup, ve_em_stat_lookup, ve_outcome_lookup)
 
+# Add comment columns -----------------------------------------------------
+
+# Click link to export comment log as csv file (link below export data link on left hand side of screen)
+# Move csv file to data-raw directory
+# Rename csv file containing comments log to redcap_comments.csv
+
+comments <- utils::read.csv(system.file("data-raw", "redcap_comments.csv", package = "VIP"), check.names = FALSE) |>
+  select(
+    id_redcap = Record,
+    variable = Field,
+    comment = Comment
+  )
+
+# Only include studies present in core
+comments <- comments[comments$id_redcap %in% core$id_redcap, , drop = FALSE]
+length(intersect(c("ae_vax_product", "n_vaccines_studied"), comments$variable)) == 0L
+length(intersect(c("ae_vax_product", "n_vaccines_studied"), dict$new)) == 0L
+comments <- comments |>
+  left_join(select(dict, variable = original, new), by = "variable") |>
+  mutate(
+    variable = case_when(
+      variable == "domain_ae_include_vax" ~ "ae_vax_product",
+      variable == "ve_n_vaccines_studied" ~ "n_vaccines_studied",
+      !is.na(new) ~ new,
+      .default = variable
+    )
+  ) |>
+  select(-new)
+
+# Clean data
+comments <- comments |>
+  mutate(
+    comment = gsub("\n", ". ", comment, fixed = TRUE),
+    comment = gsub("\"", "'", comment),
+    variable = case_when(
+      id_redcap == 512 & variable == "ve_n_vaccines_studied" ~ "study_design",
+      .default = variable
+    )
+  )
+
+# Remove entries without useful info
+comments <- comments |>
+  filter(
+    !(comment %in% c(
+      "Updated",
+      "Agree",
+      "Eric had checked AE and VE but I think the paper only covers VE.",
+      "'Safety and infectious outcomes in pediatric kidney transplant  recipients' - Described as safety, though also looks at VE for this population (not within our VE date window, however)",
+      "VE on long COVID",
+      "VE is out of range",
+      "Also has VE but out of date range",
+      "Not formally a co-administration study but analyses are stratified by whether patient received influenza vaccine (see raw data in supplement)",
+      "This article presents data for 3 different studies- results are separated by study",
+      "Cannot calculate overall incidence from a case-control study design.",
+      "Cannot calculate overall incidence from case-control design.",
+      "Confirmed calculation",
+      "COVID vaccines are included too but not disaggregated.",
+      "COVID vaccines not disaggregated. Only Moderna and Pfizer allowed",
+      "Data for COVID-19 vaccine are not disaggregated by vaccine type",
+      "fixed",
+      "I changed this from 1 to 3",
+      "I don't think this number is available in the data provided",
+      "I don't think we have this number for booster cohort",
+      "I don't think we have this number for the booster cohort",
+      "I switched this designation from 'Other' to 'Observational' based on 8/5 meeting discussion",
+      "Info on presentation",
+      "ITP reported, but not by vaccine brand (study includes non-U.S. products)",
+      "Not sure why they give a RR for preterm birth but not weight",
+      "This meets our protocol criteria, in my opinion.",
+      "This paper collects COVID vax data, but we are excluding it because it does not disaggregate by product.",
+      "Note - article in COVIDENCE is wrong. Need to pull it up either in Zotero or online from CID",
+      "Vaccine in study: SK's Inactivated Quadrivalent Seasonal . Influenza Vaccine (Fluarix Tetra)",
+      "no negative controls and only comparing to non-US licensed vaccines for AEs not of special interest. May consider excluding. Leaving for second reviewer opinion."
+    )
+    ),
+    !(variable == "date_notes" & comment %in% c("Interim safety and immunogenicity 29 days after vaccination are reported.", "Interim 15- and 29-day analysis results are reported.")),
+    !(variable == "ve_child_vax_total_7" & comment == "Pediatric data not reported for this study")
+  )
+
+# Check for duplicate comments for same variable
+#comments |>
+#  group_by(id_redcap, variable) |>
+#  summarize(
+#    n = n(),
+#    comment = paste(comment, collapse = "*****"),
+#    .groups = "drop"
+#  ) |>
+#  filter(n > 1L)
+
+# Collapse duplicates
+comments <- comments |>
+  group_by(id_redcap, variable) |>
+  summarize(
+    comment = paste(comment, collapse = ". "),
+    .groups = "drop"
+  )
+
+# Create wide version
+comments <- comments |>
+  pivot_wider(
+    names_from = variable,
+    values_from = comment
+  )
+
+if (length(comments$comments[!is.na(comments$comments)]) == 1L && comments$comments[!is.na(comments$comments)] == "Counts and other AEs reported in Table S2 (added file to Covidence). Ns suggest denominator is 108. Also reports fatigue (n = 15, 13.9%), headache (4, 3.7%), chills and shivers (2, 1.9%), increased body temp (2, 1.9%), diarrhea (1, 0.9%), N/V (1, 0.9%), and arthralgias/back pain (1, 0.9%).") {
+  comments$comments <- NULL
+}
+
+# Determine which columns in comments are article specific (and can therefore be added to core)
+intersect(names(comments), names(core))
+setdiff(names(comments), names(core))
+sort(grepv("^id_redcap|^ae_|^ve_|^epi_|^coadmin|_v?[0-9]+$", names(comments), invert = TRUE))
+z <- c("id_redcap", "date_end_month", "date_end_year", "date_start_month", "date_start_year", "immunocomp_def", "perc_premature", "population", "population_disagg", "population_other", "study_design", "study_setting", "virus")
+
+z <- comments[intersect(z, names(comments))]|>
+  remove_rows_all_na(-id_redcap)
+
+new_core_cols <- names(z)
+new_colnames <- paste0(names(z)[names(z) != "id_redcap"], "_notes")
+length(intersect(new_colnames, names(core))) == 0L
+!any(grepl("notes_notes", new_colnames))
+names(z)[names(z) != "id_redcap"] <- new_colnames
+
+# Add article specific columns to core
+core <- left_join(core, z, by = "id_redcap")
+
+# Remove article specific columns from comments
+comments <- comments[c("id_redcap", setdiff(names(comments), new_core_cols))]
+remove(z, new_colnames, new_core_cols)
+
+# Remove rows with missing values for all variables (except id_redcap)
+comments <- comments |>
+  remove_rows_all_na(-id_redcap)
+
 # Export data -------------------------------------------------------------
 
 usethis::use_data(core, overwrite = TRUE)
 usethis::use_data(dict, overwrite = TRUE)
+usethis::use_data(comments, overwrite = TRUE)

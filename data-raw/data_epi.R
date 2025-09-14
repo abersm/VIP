@@ -27,11 +27,44 @@ epi <- epi[!vapply(epi, function(x) all(is.na(x)) || length(unique(x)) == 1L, lo
 
 epi |> select(starts_with("epi")) |> names() |> unique() |> sort()
 
+# Prepare comments data
+comments <- VIP::comments |>
+  select(-starts_with(c("ve_", "ae_", "coadmin_", "rob_"))) |>
+  filter(id_redcap %in% .env$epi$id_redcap) |>
+  remove_rows_all_na(-id_redcap) |>
+  remove_cols_all_na()
+
+#setdiff(names(comments), names(epi))
+
+comments <- comments |>
+  mutate(across(-id_redcap, as.character)) |>
+  pivot_longer(
+    cols = starts_with("epi"),
+    names_to = c("variable", "virus"),
+    names_pattern = "epi_(.*)_(covid|rsv|flu)$",
+    values_to = "value",
+    values_drop_na = TRUE
+  ) |>
+  pivot_wider(
+    names_from = variable,
+    values_from = value
+  ) |>
+  utils::type.convert(as.is = TRUE) |>
+  mutate(
+    virus = case_when(
+      virus == "covid" ~ "COVID",
+      virus == "rsv" ~ "RSV",
+      virus == "flu" ~ "Influenza"
+    )
+  )
+
+names(comments)[!names(comments) %in% c("id_redcap", "virus")] <- paste0(names(comments)[!names(comments) %in% c("id_redcap", "virus")], "_notes")
+
 # Reformat and clean data -------------------------------------------------
 
 epi <- epi |>
   #select(-c(covid, rsv, flu)) |>
-  mutate(across(everything(), as.character)) |>
+  mutate(across(-id_redcap, as.character)) |>
   pivot_longer(
     cols = starts_with("epi"),
     names_to = c("variable", "virus"),
@@ -91,6 +124,11 @@ epi <- epi |>
     )
   )
 
+# Add comments column
+#setdiff(names(comments), names(epi))
+epi <- epi |>
+  left_join(comments, by = c("id_redcap", "virus"))
+
 # Reorder columns ---------------------------------------------------------
 
 epi <- epi |>
@@ -110,6 +148,27 @@ epi <- epi |>
     author, pubyear, title, date_start_month, date_start_year, date_end_month, date_end_year, date_notes,
     everything()
   )
+
+# Move notes columns to be next to parent column
+z <- grepv("_notes$", names(epi))
+move_notes_col <- function(df, notes_col) {
+  df_names <- names(df)
+  col <- gsub("_notes$", "", notes_col)
+  if (!any(idx1 <- df_names == col)) return(df)
+  idx1 <- which(idx1)
+  idx2 <- which(df_names == notes_col)
+  idx_pre <- c(setdiff(seq_len(idx1), idx2), idx2)
+  idx_all <- seq_len(ncol(df))
+  idx <- unique(c(idx_pre, idx_all))
+  df[idx]
+}
+
+for (i in z) {
+  epi <- move_notes_col(epi, i)
+}
+
+# Clean up workspace
+remove(comments, move_notes_col, i, z)
 
 # Export data -------------------------------------------------------------
 

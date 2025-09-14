@@ -26,6 +26,14 @@
 #'   }
 "ae"
 
+#' Co-administration data
+#'
+#' @format Data frame
+#' \describe{
+#'   \item{id_redcap}{RedCAP id}
+#'   }
+"coadmin"
+
 #' Epidemiological data for SARS-CoV2, RSV, and Influenza
 #'
 #' 1 row for each combination of patient population and virus per study
@@ -34,6 +42,14 @@
 #'   \item{id_redcap}{RedCAP id}
 #'   }
 "epi"
+
+#' Domain data for all studies
+#'
+#' @format Data frame
+#' \describe{
+#'   \item{id_redcap}{RedCAP id}
+#'   }
+"domain"
 
 #' Data dictionary
 #'
@@ -44,3 +60,12 @@
 #'   \item{description}{Variable definition used in RedCAP entry form}
 #'   }
 "dict"
+
+
+#' Comments in REDCap forms
+#'
+#' @format Data frame
+#' \describe{
+#'   \item{id_redcap}{RedCAP id}
+#'   }
+"comments"

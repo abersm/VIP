@@ -20,7 +20,7 @@ plot_domain <- function(
   pop <- pop %||% unique(df$population)
   df <- df[df$population %in% pop, , drop = FALSE]
   df <- dplyr::distinct(df, .data$id_redcap, .data$virus, .data$domain, .keep_all = TRUE)
-  df <- dplyr::count(df, virus, domain)
+  df <- dplyr::count(df, .data$virus, .data$domain)
   blank <- ggplot2::element_blank()
   theme_axis_text <- ggplot2::element_text(color = "black", size = font_size)
   theme_x_axis_text <- if (x_axis_label_angle == 0) {
@@ -32,14 +32,14 @@ plot_domain <- function(
   }
   df$domain <- factor(df$domain, levels = rev(c("Vaccine effectiveness", "Vaccine safety", "Epidemiology", "Co-administration")))
   if (show_missing_y) {
-    df <- tidyr::complete(df, domain)
+    df <- tidyr::complete(df, .data$domain)
   }
   if (any(idx <- is.na(df$n))) {
     df$virus[idx] <- "COVID"
   }
   df$virus <- factor(df$virus, levels = c("COVID", "RSV", "Influenza"))
   if (show_missing_x) {
-    df <- tidyr::complete(df, virus)
+    df <- tidyr::complete(df, .data$virus)
   }
   n_rows <- length(unique(df$domain))
   n_cols <- length(unique(df$virus))
@@ -104,7 +104,7 @@ plot_domain2 <- function(
     df <- df[df$immunocomp == 0, , drop = FALSE]
   }
   df <- dplyr::distinct(df, .data$id_redcap, .data$virus, .data$domain, .keep_all = TRUE)
-  df <- dplyr::count(df, virus, domain)
+  df <- dplyr::count(df, .data$virus, .data$domain)
   n <- df$n
   df$alpha <- (n - mean(n, na.rm = TRUE))/stats::sd(n, na.rm = TRUE)
   df$alpha <- fill_alpha <- scales::rescale(df$alpha, to = c(0.1, 1))
@@ -127,19 +127,19 @@ plot_domain2 <- function(
     }
   }
   df$text_color <- vapply(seq_along(fill_color), function(i) {
-    abers::clr_alpha_filter(fill_color[i], alpha = fill_alpha[i])
+    .clr_alpha_filter(fill_color[i], alpha = fill_alpha[i])
   }, character(1), USE.NAMES = FALSE)
   df$text_color <- .clr_text(df$text_color)
   df$domain <- factor(df$domain, levels = rev(c("Vaccine effectiveness", "Vaccine safety", "Epidemiology", "Co-administration")))
   if (show_missing_y) {
-    df <- tidyr::complete(df, domain)
+    df <- tidyr::complete(df, .data$domain)
   }
   if (any(idx <- is.na(df$n))) {
     df$virus[idx] <- "COVID"
   }
   df$virus <- factor(df$virus, levels = c("COVID", "RSV", "Influenza"))
   if (show_missing_x) {
-    df <- tidyr::complete(df, virus)
+    df <- tidyr::complete(df, .data$virus)
   }
   ggplot2::ggplot(df, ggplot2::aes(x = .data$virus, y = .data$domain, fill = .data$.fill, alpha = alpha)) +
     ggplot2::geom_tile(show.legend = show_legend) +

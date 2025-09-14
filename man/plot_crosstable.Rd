@@ -37,6 +37,34 @@ plot_crosstable(
 \item{color_var}{Variable used to determine fill color of table. Default is \code{"n"}. Enter as length 1 character vectors}
 
 \item{color_min, color_max}{Minimum and maximum values for continuous color scale. Enter as length 1 character vectors of hexadecimal codes or color names}
+
+\item{facet}{Facet call. For example, calls to \code{ggplot2::facet_wrap} or \code{ggplot2::facet_grid}}
+
+\item{na.rm}{If \code{TRUE}, missing levels are removed from factor variables}
+
+\item{show_missing_x, show_missing_y, show_empty_levels}{If \code{TRUE}, all levels of axis variables will be displayed. If \code{FALSE}, only levels with studies will be displayed in plot}
+
+\item{show_zeros}{If \code{TRUE}, cells with no studies will be displayed as "0". If \code{FALSE}, no 0 is displayed is these cells}
+
+\item{show_legend}{If \code{TRUE}, legend is displayed. Default is \code{FALSE}}
+
+\item{legend_title}{Title for legend}
+
+\item{x_axis_pos}{Position for x axis labels. Default is \code{"top"}}
+
+\item{x_axis_label_angle}{Angle for x axis tick labels}
+
+\item{x_axis_title}{Title for x axis}
+
+\item{y_axis_title}{Title for y axis}
+
+\item{font_size}{Font size for number of studies}
+
+\item{plot_margin}{Plot margins}
+
+\item{aspect_ratio}{Aspect ratio for plot}
+
+\item{...}{Not used}
 }
 \value{
 ggplot object

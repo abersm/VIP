@@ -7,7 +7,7 @@
 theme_vip(
   base_size = 14,
   axis_line_thickness = 0.7,
-  aspect_ratio = ratio,
+  aspect_ratio = NULL,
   ratio = aspect_ratio,
   y_axis_title_angle = 90,
   y_axis_title_font_size = base_size + 2,

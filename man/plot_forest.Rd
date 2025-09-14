@@ -9,42 +9,58 @@ plot_forest(
   estimate,
   lower,
   upper,
+  y_var = NULL,
   grouping_var = NULL,
-  label_var = "variable",
   ordering_var = NULL,
-  dodge_width = 0.7,
-  x_axis_title = NULL,
-  estimate_label = "regular",
-  color_var = grouping_var,
-  y_axis_label_size = 10,
-  y_axis_label_color = "grey30",
-  hjust = 1,
-  add_n_bands = NULL,
-  n_bands = NULL,
-  x_min = NULL,
-  x_max = NULL,
-  colors = c("#0072B5", "#BC3C29", "#333333"),
+  point_size_var = NULL,
+  point_size = 5,
+  point_shape_var = NULL,
   point_shape = "square",
-  point_size = 2,
+  point_color_var = grouping_var,
+  point_color = "#333333",
+  meta_var = "is_meta",
+  meta_id = "id_meta",
+  meta_label = "",
+  meta_point_size = point_size * 1.05,
+  meta_point_color = NULL,
+  meta_point_shape = "diamond",
+  errorbar_color_var = NULL,
+  errorbar_color = "#333333",
+  label_var = NULL,
   errorbar_width = 0.25,
-  line_thickness = 0.9,
+  errorbar_thickness = 0.7,
+  dodge_width = 0.9,
   point_border_thickness = 0.7,
+  point_border_color = "#333333",
+  axis_line_thickness = 0.7,
+  y_axis_label_size = base_size,
+  y_axis_label_color = "#333333",
+  y_axis_labels = ggplot2::waiver(),
+  x_axis_title = NULL,
+  x_axis_limits = NULL,
+  x_axis_breaks = NULL,
+  x_axis_labels = ggplot2::waiver(),
   vert_line_x_position = NULL,
   vert_line_thickness = 0.5,
   vert_line_color = "#333333",
   vert_linetype = "dashed",
-  x_label_fn = NULL,
-  scale = "regular",
-  n_rows = 1,
-  scales = "fixed",
-  show_stripes = TRUE,
-  stripe_color = "#E5E5E5",
-  show_legend = FALSE,
   legend_title = NULL,
+  show_legend = FALSE,
+  x_axis_scale = "regular",
+  show_stripes = TRUE,
+  trim_stripes = TRUE,
+  odd_stripe_colors = "#22222222",
+  even_stripe_colors = "#00000000",
+  bracket_type = c("(", ")"),
+  label_digits = NULL,
   base_size = 14,
+  hjust = 1,
   ratio = 2.5,
   aspect_ratio = ratio,
-  axis_line_thickness = 0.7,
+  expand_lower = 0,
+  expand_upper = 0,
+  x_axis_include = NULL,
+  cap = "both",
   ...
 )
 }
@@ -53,43 +69,61 @@ plot_forest(
 
 \item{estimate, lower, upper}{Columns in \code{df} containing effect estimate, lower, and upper bound of confidence interval, respectively}
 
-\item{grouping_var}{Grouping variable along y axis}
+\item{y_var}{y axis variable. Should be categorical}
 
-\item{label_var}{Variable used to create row labels in plot}
+\item{grouping_var}{Grouping variable along y axis}
 
 \item{ordering_var}{Variable used to reorder rows in forest plot. If \code{NULL} (default), no reordering}
 
-\item{dodge_width}{Width of dodging. Only relevant when \code{grouping_var} is specified. Default is \code{0.7}}
+\item{point_size_var}{Variable to determine point size}
 
-\item{x_axis_title}{Title for x axis}
+\item{point_size}{Size of effect estimate points. Default is \code{5}}
 
-\item{estimate_label}{Label for effect estimate}
+\item{point_shape_var}{Variable to determine point shapes}
 
-\item{color_var}{Variable used to determine color of effect estimate/CI bars}
+\item{point_shape}{Shapes used to display effect estimate. Options: \code{square} (default), \code{circle}, \code{diamond}, \code{triangle}}
+
+\item{point_color_var}{Variable used to determine point color}
+
+\item{point_color}{Colors for points}
+
+\item{meta_var}{Variable to indicate whether row in \code{df} refers to meta analysis. Enter as length 1 character vector. Default is \code{"is_meta"}}
+
+\item{meta_id}{Variable to identify rows in \code{df} included in each meta-analysis}
+
+\item{meta_label}{Value for \code{label_var} to indicate rows with meta-analysis}
+
+\item{meta_point_color, meta_point_shape, meta_point_size}{Color, shape, and size for meta analysis points}
+
+\item{errorbar_color_var}{Variable to determine color of effect estimate/CI bars}
+
+\item{errorbar_color}{Color of effect estimate/CI bars. Default is \code{"#333333"}}
+
+\item{label_var}{Variable used to create row labels in plot}
+
+\item{errorbar_width}{Width of error bars. Default is \code{0.25}}
+
+\item{errorbar_thickness}{Line thickness for effect estimate/CI bars. Default is \code{0.7}}
+
+\item{dodge_width}{Width of dodging. Only relevant when \code{grouping_var} is specified. Default is \code{0.9}}
+
+\item{point_border_thickness}{Border thickness for effect estimate points. Default is \code{0.7}}
+
+\item{point_border_color}{Border color (stroke) for points}
+
+\item{axis_line_thickness}{Thickness of x axis line and ticks. Default is \code{0.7}}
 
 \item{y_axis_label_size}{Font size for y axis labels. Default is \code{10}}
 
 \item{y_axis_label_color}{Font color for y axis labels. Default is \code{"grey30"}}
 
-\item{hjust}{Horizontal adjustment. Default is \code{1}}
+\item{y_axis_labels}{Labels for y axis ticks}
 
-\item{add_n_bands}{Number of extra grey/white bands to add above}
+\item{x_axis_title}{Title for x axis}
 
-\item{n_bands}{Total number of grey/white bands}
+\item{x_axis_limits}{Length 2 numeric vector contains limits for x axis}
 
-\item{x_min, x_max}{Lower and upper limit for x axis values, respectively}
-
-\item{colors}{Colors for effect estimate/CI bars}
-
-\item{point_shape}{Shapes used to display effect estimate. Options: \code{square} (default), \code{circle}, \code{diamond}, \code{triangle}}
-
-\item{point_size}{Size of effect estimate points. Default is \code{2}}
-
-\item{errorbar_width}{Width of error bars. Default is \code{0.25}}
-
-\item{line_thickness}{Line thickness for effect estimate/CI bars. Default is \code{0.9}}
-
-\item{point_border_thickness}{Border thickness for effect estimate points. Default is \code{0.7}}
+\item{x_axis_breaks, x_axis_labels}{Breaks and labels for x axis}
 
 \item{vert_line_x_position}{x intercept of dashed line. Default is \code{NULL} (no dashed line)}
 
@@ -99,27 +133,35 @@ plot_forest(
 
 \item{vert_linetype}{Linetype for reference vertical line. Default is \code{"dashed"}}
 
-\item{x_label_fn}{Function used to generate x axis labels}
-
-\item{scale}{Scale for effect estimate. Default is \code{"regular"}}
-
-\item{n_rows}{Number of rows. Default is \code{1}}
-
-\item{scales}{Input to \code{scales} argument of \code{facet_wrap} or \code{facet_grid}. Default is \code{"fixed"}}
-
-\item{show_stripes}{If \code{TRUE} (default), alternating white and grey rectangles displayed in background}
-
-\item{stripe_color}{Color for stripes. Default is \code{"#E5E5E5"}}
+\item{legend_title}{Title for legend. Only relevant when \code{show_legend = TRUE}}
 
 \item{show_legend}{If \code{FALSE} (default), no legend is displayed}
 
-\item{legend_title}{Title for legend. Only relevant when \code{show_legend = TRUE}}
+\item{x_axis_scale}{Scale for effect estimate. Default is \code{"regular"}}
+
+\item{show_stripes}{If \code{TRUE} (default), alternating white and grey rectangles displayed in background}
+
+\item{trim_stripes}{If \code{TRUE} (default), stripes are trimmed to axis limits}
+
+\item{odd_stripe_colors, even_stripe_colors}{Colors for odd and even stripes. Enter as length character vector of hexadecimal codes or colors}
+
+\item{bracket_type}{Type of bracket to use for 95\% CI label. Default is \code{c("(", ")")}}
+
+\item{label_digits}{Number of digits to include in label}
 
 \item{base_size}{Base font size for plot. Default is \code{14}}
 
-\item{ratio}{Aspect ratio of plot. Default is \code{2.5}}
+\item{hjust}{Horizontal adjustment. Default is \code{1}}
 
-\item{axis_line_thickness}{Thickness of x axis line and ticks. Default is \code{0.7}}
+\item{ratio}{Alias for \code{aspect_ratio}}
+
+\item{aspect_ratio}{Aspect ratio of plot. Default is \code{2.5}}
+
+\item{expand_lower, expand_upper}{Expansion for lower and upper end of x axis. Enter each as length 1 numeric vector}
+
+\item{x_axis_include}{Value to include along x axis. Only relevant when \code{x_axis_limits = NULL}}
+
+\item{cap}{Cap for x axis. Default is \code{"both"}}
 
 \item{...}{Arguments passed to \code{theme_vip}}
 }
