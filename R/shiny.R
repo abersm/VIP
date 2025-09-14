@@ -1,11 +1,21 @@
+#' Run shiny app
+#'
+#' @param data_ve,data_ve,data_domain,data_stats Data frames for vaccine efficacy, safety, domain, and statistics
+#' @param primary_color,secondary_color Primary and secondary color for application
+#' @param slider_color,switch_color Color for sliders and switches
+#' @param accordion_fill_color,accordion_text_color Color for background and text of accordions
+#' @param pills If `TRUE`, tabs are displayed as pills
+#' @param crosstab_fn Function used for generating heatmap of study counts
+#' @param clean_data If `TRUE`, only studies using terminology for efficacy and safety outcomes are included in app
+#' @returns Shiny app run in new window
+#' @export
 vip_shiny <- function(
-    data_ae = tryElse(ae),
     data_ve = tryElse(ve),
+    data_ae = tryElse(ae),
     data_domain = tryElse(core),
     data_stats = NULL,
     primary_color = "#246A87",
     secondary_color = "#A63B86",
-    #slider_color = "#045A8D",
     slider_color = primary_color,
     accordion_fill_color = primary_color,
     accordion_text_color = secondary_color,
