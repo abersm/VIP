@@ -139,7 +139,7 @@ crosstableUI <- function(
         style = css_style
       )
     ),
-    #debug_editorUI(id = ns("debug")),
+    #abers::debug_editorUI(id = ns("debug")),
     shiny::fluidRow(
       shiny::column(
         width = 9,
@@ -240,7 +240,7 @@ crosstableServer <- function(id, data, plotly_toolbar_buttons = "toImage") {
     #  bslib::update_tooltip(id = "tooltip_interactive_switch", text)
     #})
 
-    #debug_editorServer()
+    #abers::debug_editorServer()
 
     # Output
     shiny::reactive(
