@@ -3,6 +3,9 @@
 library(dplyr)
 library(tidyr)
 
+remove_null <- function(x) x[lengths(x, use.names = FALSE) > 0L]
+remove_cols_all_na <- function(.df) .df[!vapply(.df, function(x) all(is.na(x)), logical(1), USE.NAMES = FALSE)]
+
 # Settings ----------------------------------------------------------------
 
 # Populations
@@ -151,9 +154,13 @@ export <- TRUE
 if (exists("export") && isTRUE(export)) {
   #v <- gsub("-", "_", as.Date(floor(unclass(Sys.time())/86400)))
   v <- "V3"
-  abers::xlsx(ae_new, paste0("AE_studies_", v), freeze_col = 4)
-  abers::xlsx(ve_new, paste0("VE_studies_", v), freeze_col = 5)
-  abers::xlsx(epi_new, paste0("Epi_studies_", v), freeze_col = 5)
-  abers::xlsx(coadmin_new, paste0("Coadmin_studies_", v), freeze_col = 6)
+  #abers::xlsx(ae_new, paste0("AE_studies_", v), freeze_col = 4)
+  #abers::xlsx(ve_new, paste0("VE_studies_", v), freeze_col = 5)
+  #abers::xlsx(epi_new, paste0("Epi_studies_", v), freeze_col = 5)
+  #abers::xlsx(coadmin_new, paste0("Coadmin_studies_", v), freeze_col = 6)
+  #v <- "v2"
+ # abers::xlsx(ae_new, paste0("AE_studies_", v), freeze_col = 4)
+ # abers::xlsx(ve_new, paste0("VE_studies_", v), freeze_col = 6)
+ # abers::xlsx(epi_new, paste0("Epi_studies_", v), freeze_col = 5)
   remove(export, v)
 }
