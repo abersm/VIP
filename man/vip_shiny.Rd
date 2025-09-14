@@ -21,7 +21,7 @@ vip_shiny(
 )
 }
 \arguments{
-\item{data_ve, data_ve, data_domain, data_stats}{Data frames for vaccine efficacy, safety, domain, and statistics}
+\item{data_ve, data_ae, data_domain, data_stats}{Data frames for vaccine efficacy, safety, domain, and statistics}
 
 \item{primary_color, secondary_color}{Primary and secondary color for application}
 

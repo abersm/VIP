@@ -1,6 +1,6 @@
 Package: VIP
 Title: R package for the Vaccine Integrity Project
-Version: 0.0.0.9000
+Version: 1.0.0
 Authors@R: 
     person("Michael", "Abers", , "abersm@gmail.com", role = c("aut", "cre"))
 Description: Tools to analyze and visualize data on vaccine efficacy and safety for the Vaccine Integrity Project.

@@ -1,6 +1,6 @@
 #' Run shiny app
 #'
-#' @param data_ve,data_ve,data_domain,data_stats Data frames for vaccine efficacy, safety, domain, and statistics
+#' @param data_ve,data_ae,data_domain,data_stats Data frames for vaccine efficacy, safety, domain, and statistics
 #' @param primary_color,secondary_color Primary and secondary color for application
 #' @param slider_color,switch_color Color for sliders and switches
 #' @param accordion_fill_color,accordion_text_color Color for background and text of accordions
@@ -51,7 +51,9 @@ vip_shiny <- function(
   )
   header <- shiny::headerPanel(
     shiny::tags$h1(
-      shiny::tags$i(shiny::tags$img(src = base64enc::dataURI(file = system.file("data-raw", "logo.svg", package = "VIP"), mime = "image/svg+xml"))),
+      #shiny::tags$i(shiny::tags$img(src = base64enc::dataURI(file = system.file("data-raw", "logo.svg", package = "VIP"), mime = "image/svg+xml"))),
+      shiny::tags$img(src = "assets/logo.svg"),
+      #shiny::tags$img(src = system.file("logo/logo.svg", package = "VIP")),
       shiny::tags$text("Vaccine Integrity Project", style = sprintf("vertical-align:middle;float:right;padding-top:30px;font-size:25px;color:%s;", primary_color)),
       style = "color:#333;padding:5px;"
     )
