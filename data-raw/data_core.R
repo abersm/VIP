@@ -161,6 +161,7 @@ dict <- c(
 )
 
 # Check to make sure all names(dict) are included in original
+## Output should be TRUE
 all(names(dict) %in% original)
 
 # Create final lookup table
@@ -542,6 +543,12 @@ setdiff(names(comments), names(core))
 sort(grepv("^id_redcap|^ae_|^ve_|^epi_|^coadmin|_v?[0-9]+$", names(comments), invert = TRUE))
 z <- c("id_redcap", "date_end_month", "date_end_year", "date_start_month", "date_start_year", "immunocomp_def", "perc_premature", "population", "population_disagg", "population_other", "study_design", "study_setting", "virus")
 
+remove_rows_all_na <- function(df, ...) {
+  df_subset <- dplyr::select(df, ...)
+  rows_all_na <- apply(df_subset, 1, function(x) all(is.na(x)))
+  df[!rows_all_na, , drop = FALSE]
+}
+
 z <- comments[intersect(z, names(comments))]|>
   remove_rows_all_na(-id_redcap)
 
@@ -561,6 +568,8 @@ remove(z, new_colnames, new_core_cols)
 # Remove rows with missing values for all variables (except id_redcap)
 comments <- comments |>
   remove_rows_all_na(-id_redcap)
+
+remove(remove_rows_all_na)
 
 # Export data -------------------------------------------------------------
 
