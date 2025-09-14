@@ -70,3 +70,16 @@ Vaccine Integrity Project
     </g>
   </g>
 </svg>
+
+``` r
+# install.packages("devtools")
+devtools::install_github("abersm/VIP")
+```
+
+## Running shiny app
+After installing package (see above), initialize the application by running the following: 
+
+``` r
+library(VIP)
+vip_shiny()
+```
