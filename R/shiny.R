@@ -55,6 +55,17 @@ vip_shiny <- function(
     viewbox = "0 0 16 16",
     shiny::tags$path(d = "M.5 0a.5.5 0 0 1 .5.5v15a.5.5 0 0 1-1 0V.5A.5.5 0 0 1 .5 0M2 1.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5z")
   )
+  ## Code derived from https://icons.getbootstrap.com/icons/info-circle/
+  info_icon <- shiny::tags$svg(
+    xmlns = "http://www.w3.org/2000/svg",
+    width = "16",
+    height = "16",
+    fill = "currentColor",
+    class = "bi bi-info-circle",
+    viewbox = "0 0 16 16",
+    shiny::tags$path(d = "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"),
+    shiny::tags$path(d = "m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0")
+  )
 
   # App style
   theme <- bslib::bs_theme(
@@ -89,15 +100,27 @@ vip_shiny <- function(
 
       # Study domain tab --------------------------------------------------------
       shiny::tabPanel(
-        title = "Study domain",
-        icon = shiny::icon("database", verify_fa = FALSE),
+        #title = "Study domain",
+        #icon = shiny::icon("database", verify_fa = FALSE),
+        title = "Landing page",
+        icon = info_icon,
         style = tab_style,
-        crosstableUI(
-          id = "domain_tab",
-          primary_color = primary_color,
-          secondary_color = secondary_color,
-          switch_color = switch_color
+        bslib::card(
+          shiny::tags$img(src = "assets/logo.svg", style = "height:200px;"),
+          shiny::tags$h1(shiny::tags$text("Welcome to the Vaccine Integrity Project!", style = sprintf("vertical-align:middle;padding-top:30px;font-size:25px;color:%s;", primary_color)), style = "color:#333;padding:5px;"),
+          shiny::tags$br(),
+          shiny::tags$h4("TODO:"),
+          shiny::tags$li("ADD PROJECT DESCRIPTION AND INSTRUCTIONS"),
+          shiny::tags$li("LINK TO PROSPERO"),
+          shiny::tags$li("LINK TO CIDRAP HOMEPAGE"),
+          shiny::tags$li("LINK TO ARTICLE ONCE PUBLISHED")
         )
+        #crosstableUI(
+        #  id = "domain_tab",
+        #  primary_color = primary_color,
+        #  secondary_color = secondary_color,
+        #  switch_color = switch_color
+        #)
       ),
 
       # Vaccine effectiveness tab -----------------------------------------------
