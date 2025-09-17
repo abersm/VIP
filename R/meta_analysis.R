@@ -264,6 +264,16 @@ meta_analyze_ratio <- function(
     for (j in cols) {
       df_meta[[j]] <- backtransform_from_log_odds(.subset2(df_meta, j))
     }
+    if (force_lower_upper) {
+      lower <- .subset2(df_meta, cols[2L])
+      upper <- .subset2(df_meta, cols[3L])
+      idx <- lower > upper
+      idx <- !is.na(idx) & idx
+      if (any(idx)) {
+        df_meta[[cols[3L]]][idx] <- lower[idx]
+        df_meta[[cols[2L]]][idx] <- upper[idx]
+      }
+    }
     if (add_cols) {
       z <- x[, incl_cols, drop = FALSE]
       idx <- vapply(z, function(y) length(unique(y)) == 1L, logical(1), USE.NAMES = FALSE)

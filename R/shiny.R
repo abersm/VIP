@@ -23,6 +23,7 @@ vip_shiny <- function(
     pills = FALSE,
     crosstab_fn = plot_crosstable2,
     clean_data = TRUE) {
+  # Data
   if (clean_data) {
     data_ve <- data_ve[data_ve$outcome %!in% c("Other", "Other- non-RSV LRTIs", "Other- composite of severe, critical, and death"), , drop = FALSE]
     data_ve <- data_ve[data_ve$vax_product != "Other", , drop = FALSE]
@@ -42,6 +43,20 @@ vip_shiny <- function(
   data_ae <- data_ae[data_ae$virus != "Multiple", ]
   tooltip_options <- names(data_stats)
   tooltip_default <- intersect(tooltip_options, c("virus", "vax_product", "outcome", "id_redcap", "id_covidence", "study_design", "n_vaccinated_total", "n_vaccinated_with_outcome", "n_unvaccinated_total", "n_unvaccinated_with_outcome", "pops_in_study"))
+
+  # Icons
+  ## Code derived from https://icons.getbootstrap.com/icons/bar-chart-steps/
+  forest_plot_icon <- shiny::tags$svg(
+    xmlns = "http://www.w3.org/2000/svg",
+    width = "16",
+    height = "16",
+    fill = "currentColor",
+    class = "bi bi-bar-chart-steps",
+    viewbox = "0 0 16 16",
+    shiny::tags$path(d = "M.5 0a.5.5 0 0 1 .5.5v15a.5.5 0 0 1-1 0V.5A.5.5 0 0 1 .5 0M2 1.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5z")
+  )
+
+  # App style
   theme <- bslib::bs_theme(
     version = 5,
     bg = "#FFFFFF",
@@ -53,7 +68,6 @@ vip_shiny <- function(
     shiny::tags$h1(
       #shiny::tags$i(shiny::tags$img(src = base64enc::dataURI(file = system.file("data-raw", "logo.svg", package = "VIP"), mime = "image/svg+xml"))),
       shiny::tags$img(src = "assets/logo.svg"),
-      #shiny::tags$img(src = system.file("logo/logo.svg", package = "VIP")),
       shiny::tags$text("Vaccine Integrity Project", style = sprintf("vertical-align:middle;float:right;padding-top:30px;font-size:25px;color:%s;", primary_color)),
       style = "color:#333;padding:5px;"
     )
@@ -73,7 +87,7 @@ vip_shiny <- function(
     shiny::tabsetPanel(
       id = "tabs",
 
-      # Study domain ------------------------------------------------------------
+      # Study domain tab --------------------------------------------------------
       shiny::tabPanel(
         title = "Study domain",
         icon = shiny::icon("database", verify_fa = FALSE),
@@ -85,6 +99,8 @@ vip_shiny <- function(
           switch_color = switch_color
         )
       ),
+
+      # Vaccine effectiveness tab -----------------------------------------------
       shiny::tabPanel(
         title = "Vaccine effectiveness",
         icon = shiny::icon("check-circle", verfiy_fa = FALSE),
@@ -96,6 +112,7 @@ vip_shiny <- function(
           switch_color = switch_color
         )
       ),
+      # Vaccine safety tab ------------------------------------------------------
       shiny::tabPanel(
         title = "Vaccine safety",
         icon = shiny::icon("triangle-exclamation", verfiy_fa = FALSE),
@@ -107,18 +124,23 @@ vip_shiny <- function(
           switch_color = switch_color
         )
       ),
+
+      # Meta-analysis tab -------------------------------------------------------
       shiny::tabPanel(
         title = "Meta-analysis",
-        icon = shiny::icon("chart-gantt", verify_fa = FALSE),
+        #icon = shiny::icon("chart-gantt", verify_fa = FALSE),
+        icon = forest_plot_icon,
         style = tab_style,
         shinyjqui::jqui_resizable(shiny::plotOutput(outputId = "plot_forest"))
-      ),
-      shiny::tabPanel(
-        title = "Custom plots",
-        icon = shiny::icon("chart-pie", verify_fa = FALSE),
-        style = tab_style,
-        plotly::plotlyOutput(outputId = "plot_other")
       )
+
+      # Tables tab --------------------------------------------------------------
+      #shiny::tabPanel(
+      #  title = "Raw data",
+      #  icon = table_icon,
+      #  style = tab_style,
+      #  editTableUI("table_studies")
+      #)
     )
   )
   server <- function(input, output, session) {
@@ -236,6 +258,5 @@ vip_shiny <- function(
       plot_interactive(p, show_legend = input$stats_show_legend)
     })
   }
-  #bslib::run_with_themer(shiny::shinyApp(ui, server))
   shiny::shinyApp(ui, server)
 }

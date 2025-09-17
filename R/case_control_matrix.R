@@ -18,7 +18,8 @@ fill_2x2 <- function(
     c1 = "n_with_outcome",
     c2 = "n_without_outcome",
     total = "n_total",
-    replace_columns = FALSE) {
+    replace_columns = FALSE,
+    haldane_correction = TRUE) {
   if (replace_columns) {
     df_names <- names(df)
     get_name <- function(x, default) if (is.character(x) && length(x) == 1L && any(df_names == x)) x else default
@@ -124,6 +125,14 @@ fill_2x2 <- function(
     r2_nna & !is.na(r2c1) ~ r2 - r2c1,
     .default = total - r1c1 - r1c2 - r2c1
   )
+  if (haldane_correction && any(idx <- r1c1 == 0 | r1c2 == 0L | r2c1 == 0L | r2c2 == 0L, na.rm = TRUE)) {
+    r1c1[idx] <- r1c1[idx] + 0.5
+    r1c2[idx] <- r1c2[idx] + 0.5
+    r2c1[idx] <- r2c1[idx] + 0.5
+    r2c2[idx] <- r2c2[idx] + 0.5
+  } else {
+    haldane_correction <- FALSE
+  }
   total <- r1c1 + r1c2 + r2c1 + r2c2
   if (replace_columns) {
     df[[col_names$r1c1]] <- r1c1
@@ -145,6 +154,9 @@ fill_2x2 <- function(
     df$.c1 <- r1c1 + r2c1
     df$.c2 <- r1c2 + r2c2
     df$.total <- total
+  }
+  if (haldane_correction) {
+    df$.haldane_correction <- idx
   }
   df$.calculable <- !is.na(total)
   df

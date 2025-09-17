@@ -23,7 +23,8 @@ plot_crosstable(
   x_axis_label_angle = 45,
   x_axis_title = NULL,
   y_axis_title = NULL,
-  font_size = 18,
+  label_size = 18,
+  font_size = 16,
   plot_margin = NULL,
   aspect_ratio = NULL,
   ...
@@ -57,6 +58,8 @@ plot_crosstable(
 \item{x_axis_title}{Title for x axis}
 
 \item{y_axis_title}{Title for y axis}
+
+\item{label_size}{Font size of row/column titles}
 
 \item{font_size}{Font size for number of studies}
 

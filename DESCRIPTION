@@ -13,6 +13,7 @@ Depends:
 Imports:
     bslib,
     dplyr,
+    DT,
     ggplot2,
     grDevices,
     htmltools,

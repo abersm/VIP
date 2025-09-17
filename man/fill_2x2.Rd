@@ -15,7 +15,8 @@ fill_2x2(
   c1 = "n_with_outcome",
   c2 = "n_without_outcome",
   total = "n_total",
-  replace_columns = FALSE
+  replace_columns = FALSE,
+  haldane_correction = TRUE
 )
 }
 \arguments{

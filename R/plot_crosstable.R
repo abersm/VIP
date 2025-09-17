@@ -9,6 +9,7 @@
 #' @param x_axis_pos Position for x axis labels. Default is `"top"`
 #' @param y_axis_title Title for y axis
 #' @param font_size Font size for number of studies
+#' @param label_size Font size of row/column titles
 #' @param na.rm If `TRUE`, missing levels are removed from factor variables
 #' @param show_missing_x,show_missing_y,show_empty_levels If `TRUE`, all levels of axis variables will be displayed. If `FALSE`, only levels with studies will be displayed in plot
 #' @param show_zeros If `TRUE`, cells with no studies will be displayed as "0". If `FALSE`, no 0 is displayed is these cells
@@ -39,7 +40,8 @@ plot_crosstable <- function(
     x_axis_label_angle = 45,
     x_axis_title = NULL,
     y_axis_title = NULL,
-    font_size = 18,
+    label_size = 18,
+    font_size = 16,
     plot_margin = NULL,
     aspect_ratio = NULL,
     ...) {
@@ -101,7 +103,7 @@ plot_crosstable <- function(
   }
   plot_margin <- plot_margin %||% if (aspect_ratio > 2) ggplot2::margin(t = 10, r = 30, b = 10) else if (aspect_ratio > 0.5) ggplot2::margin(t = 0, r = 40, b = 10) else NULL
   blank <- ggplot2::element_blank()
-  theme_axis_text <- ggplot2::element_text(color = "black", size = font_size)
+  theme_axis_text <- ggplot2::element_text(color = "black", size = label_size)
   theme_x_axis_text <- if (x_axis_label_angle == 0) {
     theme_axis_text
   } else if (x_axis_pos == "top") {
@@ -123,7 +125,7 @@ plot_crosstable <- function(
     ggplot2::geom_tile(show.legend = show_legend) +
     ggplot2::geom_text(
       mapping = ggplot2::aes(label = .data$n, color = ggplot2::after_scale(.clr_text(fill))),
-      size = font_size/3,
+      size = font_size/2.845276,
       na.rm = TRUE
     ) +
     ggplot2::scale_fill_gradientn(
@@ -173,7 +175,8 @@ plot_crosstable2 <- function(
     x_axis_label_angle = 45,
     x_axis_title = NULL,
     y_axis_title = NULL,
-    font_size = 18,
+    label_size = 18,
+    font_size = 16,
     plot_margin = NULL,
     aspect_ratio = NULL,
     ...) {
@@ -233,7 +236,7 @@ plot_crosstable2 <- function(
   }
   plot_margin <- plot_margin %||% if (aspect_ratio > 2) ggplot2::margin(t = 10, r = 30, b = 10) else if (aspect_ratio > 0.5)  ggplot2::margin(t = 0, r = 40, b = 10) else NULL
   blank <- ggplot2::element_blank()
-  theme_axis_text <- ggplot2::element_text(color = "black", size = font_size)
+  theme_axis_text <- ggplot2::element_text(color = "black", size = label_size)
   theme_x_axis_text <- if (x_axis_label_angle == 0) {
     theme_axis_text
   } else if (x_axis_pos == "top") {
@@ -248,7 +251,7 @@ plot_crosstable2 <- function(
   df$text_color <- .clr_text(df$text_color)
   ggplot2::ggplot(df, ggplot2::aes(x = .data$.x, y = .data$.y, fill = .data$.fill, alpha = alpha)) +
     ggplot2::geom_tile(show.legend = show_legend) +
-    ggplot2::geom_text(ggplot2::aes(label = .data$n, color = .data$text_color), size = font_size/3, alpha = 1, na.rm = TRUE) +
+    ggplot2::geom_text(ggplot2::aes(label = .data$n, color = .data$text_color), size = font_size/2.845276, alpha = 1, na.rm = TRUE) +
     ggplot2::scale_fill_identity() +
     ggplot2::scale_alpha_identity() +
     ggplot2::scale_color_identity() +

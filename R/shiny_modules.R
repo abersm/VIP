@@ -62,9 +62,25 @@ crosstableUI <- function(
     off_color = .clr_alpha_filter(switch_color, accordion_btn_background_color_alpha),
     right_align = TRUE
   )
-  #interactive_switch <- bslib::tooltip(interactive_switch, "Make plot interactive", placement = "right", id = ns("tooltip_interactive_switch"))
+  plot_card_style <- shiny::tags$head(
+    shiny::tags$style(
+      shiny::HTML(
+      sprintf(".parent-card {display: flex;height: 100vh;overflow: hidden;}
+      .plot-card {
+        flex-grow: 1;
+        margin: 5px;
+        padding: 20px;
+        overflow: auto;
+        resize: both;
+        border: 1px solid %s;
+        box-sizing: border-box;
+      }", primary_color)
+      )
+      )
+  )
   bslib::layout_sidebar(
     shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs--shiny .irs-bar{border-top:1px solid %s;border-bottom:1px solid %s;background:%s;}.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single{background-color:%s;}.irs--shiny .irs-handle{background-color:%s;}", slider_color, slider_color, slider_color, slider_color, slider_color)))),
+    plot_card_style,
     sidebar = bslib::sidebar(
       width = sidebar_width,
       bslib::accordion(
@@ -157,13 +173,44 @@ crosstableUI <- function(
     ),
     shiny::conditionalPanel(
       condition = "input.make_plot_interactive === false",
-      plot_output,
+      #shiny::div(
+      #  class = "parent-card",
+      #  bslib::card(
+      #    class = "plot-card",
+          plot_output,
+      #  )
+      #),
       ns = ns
     ),
     shiny::conditionalPanel(
       condition = "input.make_plot_interactive === true",
-      plotly_output,
+      #shiny::div(
+      #  class = "parent-card",
+      #  bslib::card(
+      #    class = "plot-card",
+          plotly_output,
+     #   )
+     # ),
       ns = ns
+    ),
+    bslib::accordion(
+      open = FALSE,
+      bslib::accordion_panel(
+        title = "Raw data",
+        icon = shiny::tags$i(
+          shiny::tags$svg(
+            xmlns = "http://www.w3.org/2000/svg",
+            width = "16",
+            height = "16",
+            fill = "currentColor",
+            class = "bi bi-table",
+            viewbox = "0 0 16 16",
+            shiny::tags$path(d = "M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 2h-4v3h4zm0 4h-4v3h4zm0 4h-4v3h3a1 1 0 0 0 1-1zm-5 3v-3H6v3zm-5 0v-3H1v2a1 1 0 0 0 1 1zm-4-4h4V8H1zm0-4h4V4H1zm5-3v3h4V4zm4 4H6v3h4z")
+          )
+        ),
+        DT::dataTableOutput(outputId = ns("raw_data"))
+      ),
+      style = css_style
     )
   )
 }
@@ -205,7 +252,8 @@ crosstableServer <- function(id, data, plotly_toolbar_buttons = "toImage") {
           y = input$y_var,
           color_max = input$color_picker,
           show_legend = input$show_legend %||% FALSE,
-          font_size = input$font_size_labels,
+          label_size = input$font_size_labels,
+          font_size = input$font_size_data,
           #aspect_ratio = input$aspect_ratio,
           plot_margin = ggplot2::margin(r = input$margin_right, t = input$margin_top, b = 10, l = 10)
         )
@@ -242,6 +290,23 @@ crosstableServer <- function(id, data, plotly_toolbar_buttons = "toImage") {
 
     #abers::debug_editorServer()
 
+    # Raw data
+    output$raw_data <- DT::renderDataTable({
+      tmp <- df_plot()
+      rownames(tmp) <- NULL
+      tmp$reviewer <- tmp$id_redcap <- tmp$id_covidence <- NULL
+      idx <- vapply(tmp, function(x) is.character(x) && !all(is.na(x)) && max(nchar(x), na.rm = TRUE) > 75, logical(1), USE.NAMES = FALSE)
+      tmp <- tmp[!idx]
+      DT::datatable(
+        tmp,
+        extensions = "Buttons",
+        options = list(
+          dom = "Bfrtip", # Places buttons (B) at the top
+          buttons = c("copy", "csv", "excel", "pdf")
+        )
+      )
+    })
+
     # Output
     shiny::reactive(
       list(
@@ -254,5 +319,70 @@ crosstableServer <- function(id, data, plotly_toolbar_buttons = "toImage") {
         y_var = input$y_var
       )
     )
+  })
+}
+
+#' Module UI for data table
+#'
+#' @param id Input id. Must match `id` entered in `editTableServer`
+#' @param ... Arguments passed to `rhandsontable::rHandsontableOutput`
+#' @returns Enter as input to UI of shiny app
+#' @export
+editTableUI <- function(id, ...) {
+  ns <- shiny::NS(id)
+  rhandsontable::rHandsontableOutput(outputId = ns("input_data"), ...)
+}
+
+#' Module server for data table
+#'
+#' @param id Input id. Must match `id` entered in `editTableUI`
+#' @param data Data frame for plotting
+#' @param allowRowEdit If `TRUE`, data in table can be edited within app
+#' @param allowColumnEdit If `TRUE`, column names in table can be edited within app
+#' @param manualRowMove If `TRUE`, rows in table many be reordered within app
+#' @param ... Not used
+#' @returns Enter into server of shiny app
+#' @export
+editTableServer <- function(id, df, allowRowEdit = FALSE, allowColumnEdit = FALSE, manualRowMove = TRUE, ...) {
+  js_callback <- "function (key, options) {
+                         var csv = csvString(this, sep=',', dec='.');
+                         var link = document.createElement('a');
+                         link.setAttribute('href', 'data:text/plain;charset=utf-8,' +
+                           encodeURIComponent(csv));
+                         link.setAttribute('download', 'data.csv');
+
+                         document.body.appendChild(link);
+                         link.click();
+                         document.body.removeChild(link);
+                       }"
+  js_callback <- structure(js_callback, class = "JS_EVAL")
+  shiny::moduleServer(id, function(input, output, session) {
+    ns <- session$ns
+    output$input_data <- rhandsontable::renderRHandsontable({
+      tmp <- df()
+      rownames(tmp) <- NULL
+      out <- rhandsontable::rhandsontable(
+        data = tmp,
+        allowRowEdit = allowRowEdit,
+        allowColumnEdit = allowColumnEdit,
+        useTypes = FALSE,
+        manualRowMove = manualRowMove,
+        ...
+      )
+      rhandsontable::hot_context_menu(
+        out,
+        customOpts = list(
+          csv = list(name = "Download as CSV", callback = js_callback)
+        )
+      )
+      out <- rhandsontable::hot_cols(out, fixedColumnsLeft = 1, manualColumnResize = TRUE, columnSorting = TRUE, manualColumnMove = TRUE)
+      out <- rhandsontable::hot_rows(out, fixedRowsTop = 1)
+      out
+    })
+    shiny::observeEvent(input$input_data, {
+      df(rhandsontable::hot_to_r(input$input_data))
+    })
+
+    shiny::reactive(df())
   })
 }
