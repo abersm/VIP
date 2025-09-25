@@ -76,7 +76,7 @@ Vaccine Integrity Project
 install.packages("devtools")
 
 # Install VIP package from github repository
-devtools::install_github("abersm/VIP", auth_token = "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")
+devtools::install_github("abersm/VIP")
 ```
 
 ## Running shiny app
