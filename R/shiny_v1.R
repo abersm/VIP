@@ -97,7 +97,7 @@ vip_shiny_v1 <- function(
           shiny::tags$br(),
           shiny::tags$a("Project homepage", href = "https://www.cidrap.umn.edu/vaccine-integrity-project"),
           shiny::tags$br(),
-          shiny::tags$strong("From Data to Decisions: ", shiny::tags$a("YouTube link to presentation", href = "https://www.youtube.com/watch?v=lSuvGlxqrpg")),
+          shiny::tags$a("YouTube link to presentation", href = "https://www.youtube.com/watch?v=lSuvGlxqrpg"),
           shiny::tags$br(),
           landing_page_text
         )
@@ -111,12 +111,12 @@ vip_shiny_v1 <- function(
         style = tab_style,
         bslib::layout_columns(
           bslib::card(
-            style = "resize:horizontal;",
+            #style = "resize:horizontal;",
             #plotly::plotlyOutput(outputId = "plot_studies", width = "100%", height = "400px")
             shiny::plotOutput(outputId = "plot_studies", width = "100%", height = "400px", click = "plot_studies_click", dblclick = "plot_studies_dbl_click")
           ),
           bslib::card(
-            style = "resize:horizontal;",
+            #style = "resize:horizontal;",
             bslib::popover(
               trigger = shiny::icon("sliders"),
               shiny::checkboxGroupInput(
@@ -134,7 +134,7 @@ vip_shiny_v1 <- function(
             ),
             DT::DTOutput("table_studies")
           ),
-          style = "resize:vertical;"
+          style = "resize:both;"
         )
       )
     )
