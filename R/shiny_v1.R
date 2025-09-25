@@ -1,4 +1,4 @@
-#' Run shiny app
+#' Run shiny app v1
 #'
 #' @param data Data frame
 #' @param primary_color,secondary_color Primary and secondary color for application
@@ -18,21 +18,18 @@ vip_shiny_v1 <- function(
     switch_color = primary_color,
     pills = FALSE,
     crosstab_fn = plot_crosstable2) {
+  data$population[data$population == "Immunocomp"] <- "Immunocompromised"
+  data$population <- factor(data$population, levels = rev(c("Pediatric", "Adult", "Pregnant", "Immunocompromised")))
+  get_position <- function(x, axis = "x") {
+    levels <- if (axis == "x") c("COVID", "RSV", "Influenza") else rev(c("Pediatric", "Adult", "Pregnant", "Immunocompromised"))
+    delta <- abs(seq_along(levels) - x)
+    levels[which.min(delta)]
+  }
+  data <- data[unique(c(c("virus", "population", "link"), names(data)))]
+  data <- data[setdiff(names(data), c("infant", "child", "adult", "elder", "preg", "immunocomp", "published_year", "covid", "rsv", "flu"))]
   tab_style <- paste0("p-3 border ", if (pills) "rounded ", "border-top-0 rounded-bottom")
-  tooltip_options <- names(data_stats)
-  tooltip_default <- intersect(tooltip_options, c("virus", "vax_product", "outcome", "id_redcap", "id_covidence", "study_design", "n_vaccinated_total", "n_vaccinated_with_outcome", "n_unvaccinated_total", "n_unvaccinated_with_outcome", "pops_in_study"))
 
   # Icons
-  ## Code derived from https://icons.getbootstrap.com/icons/bar-chart-steps/
-  forest_plot_icon <- shiny::tags$svg(
-    xmlns = "http://www.w3.org/2000/svg",
-    width = "16",
-    height = "16",
-    fill = "currentColor",
-    class = "bi bi-bar-chart-steps",
-    viewbox = "0 0 16 16",
-    shiny::tags$path(d = "M.5 0a.5.5 0 0 1 .5.5v15a.5.5 0 0 1-1 0V.5A.5.5 0 0 1 .5 0M2 1.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5z")
-  )
   ## Code derived from https://icons.getbootstrap.com/icons/info-circle/
   info_icon <- shiny::tags$svg(
     xmlns = "http://www.w3.org/2000/svg",
@@ -61,6 +58,20 @@ vip_shiny_v1 <- function(
     )
   )
 
+  # Landing page info
+  landing_page_text <- shiny::tagList(
+    shiny::tags$h2(shiny::tags$strong("About the Vaccine Integrity Project:", style = sprintf("color:%s;", primary_color))),
+    shiny::tags$p("CIDRAP's Vaccine Integrity Project is an initiative dedicated to safeguarding vaccine use in the U.S. so that it remains grounded in the best available science, free from external influence, and focused on optimizing protection of individuals, families, and communities against vaccine-preventable diseases."),
+    shiny::tags$p("The Vaccine Integrity Project issued its final report from the planning phase summarizing its findings from the exploratory phase, focused on what is needed to ensure the integrity of the U.S. vaccine system, including vaccine evaluations and clinical guidelines based on rigorous and timely reviews."),
+    shiny::tags$br(),
+    shiny::tags$p(
+      "Now, Vaccine Integrity Project is moving into its planning phase and focusing on actions that stemmed from its earlier work:",
+      shiny::tags$li(shiny::tags$strong("Implementing a rapid response accountability effort."), " In response to misleading and inaccurate claims, the Vaccine Integrity Project aims to launch a rapid response communications initiative to monitor and address vaccine- and public health-related misinformation originating from official, federal sources in real time."),
+      shiny::tags$li(shiny::tags$strong("Developing and disseminating the evidence base for immunization recommendations and clinical consideration."), " Engaging with healthcare providers, the public health community, and medical societies, CIDRAP is leading a comprehensive review of scientific evidence to inform immunization recommendations so that clinicians have evidence-backed guidance on the key immunizations for all ages on influenza, RSV, and COVID heading into respiratory virus season."),
+      shiny::tags$li(shiny::tags$strong("Fostering continued collaboration and visibility."), " This work is far from over, and no single organization can carry it alone. The scale and complexity of the challenges ahead demand ongoing collaboration and coordinated action across the ecosystem. Regular convening will support better alignment, reduce duplication, and help prioritize and address emerging issues in real time.")
+    )
+  )
+
   # UI ----------------------------------------------------------------------
   ui <- bslib::page_fluid(
     theme = theme,
@@ -75,10 +86,8 @@ vip_shiny_v1 <- function(
     shiny::tabsetPanel(
       id = "tabs",
 
-      # Study domain tab --------------------------------------------------------
+      # Landing page ------------------------------------------------------------
       shiny::tabPanel(
-        #title = "Study domain",
-        #icon = shiny::icon("database", verify_fa = FALSE),
         title = "Landing page",
         icon = info_icon,
         style = tab_style,
@@ -86,177 +95,135 @@ vip_shiny_v1 <- function(
           shiny::tags$img(src = "assets/logo.svg", style = "height:200px;"),
           shiny::tags$h1(shiny::tags$text("Welcome to the Vaccine Integrity Project!", style = sprintf("vertical-align:middle;padding-top:30px;font-size:25px;color:%s;", primary_color)), style = "color:#333;padding:5px;"),
           shiny::tags$br(),
-          shiny::tags$h4("TODO:"),
-          shiny::tags$li("ADD PROJECT DESCRIPTION AND INSTRUCTIONS"),
-          shiny::tags$li("LINK TO PROSPERO"),
-          shiny::tags$li("LINK TO CIDRAP HOMEPAGE"),
-          shiny::tags$li("LINK TO ARTICLE ONCE PUBLISHED")
-        )
-        #crosstableUI(
-        #  id = "domain_tab",
-        #  primary_color = primary_color,
-        #  secondary_color = secondary_color,
-        #  switch_color = switch_color
-        #)
-      ),
-
-      # Vaccine effectiveness tab -----------------------------------------------
-      shiny::tabPanel(
-        title = "Vaccine effectiveness",
-        icon = shiny::icon("check-circle", verfiy_fa = FALSE),
-        style = tab_style,
-        crosstableUI(
-          id = "ve_tab",
-          primary_color = primary_color,
-          secondary_color = secondary_color,
-          switch_color = switch_color
-        )
-      ),
-      # Vaccine safety tab ------------------------------------------------------
-      shiny::tabPanel(
-        title = "Vaccine safety",
-        icon = shiny::icon("triangle-exclamation", verfiy_fa = FALSE),
-        style = tab_style,
-        crosstableUI(
-          id = "ae_tab",
-          primary_color = primary_color,
-          secondary_color = secondary_color,
-          switch_color = switch_color
+          shiny::tags$a("Project homepage", href = "https://www.cidrap.umn.edu/vaccine-integrity-project"),
+          shiny::tags$br(),
+          shiny::tags$strong("From Data to Decisions: ", shiny::tags$a("YouTube link to presentation", href = "https://www.youtube.com/watch?v=lSuvGlxqrpg")),
+          shiny::tags$br(),
+          landing_page_text
         )
       ),
 
-      # Meta-analysis tab -------------------------------------------------------
+      # Overview tab ------------------------------------------------------------
       shiny::tabPanel(
-        title = "Meta-analysis",
-        #icon = shiny::icon("chart-gantt", verify_fa = FALSE),
-        icon = forest_plot_icon,
+        title = "Studies",
+        #abers::debug_editorUI(),
+        icon = shiny::icon("book", verfiy_fa = FALSE),
         style = tab_style,
-        shinyjqui::jqui_resizable(shiny::plotOutput(outputId = "plot_forest"))
+        bslib::layout_columns(
+          bslib::card(
+            style = "resize:horizontal;",
+            #plotly::plotlyOutput(outputId = "plot_studies", width = "100%", height = "400px")
+            shiny::plotOutput(outputId = "plot_studies", width = "100%", height = "400px", click = "plot_studies_click", dblclick = "plot_studies_dbl_click")
+          ),
+          bslib::card(
+            style = "resize:horizontal;",
+            bslib::popover(
+              trigger = shiny::icon("sliders"),
+              shiny::checkboxGroupInput(
+                inputId = "studies_virus",
+                label = shiny::tags$strong("Virus:"),
+                choices = c("COVID", "RSV", "Influenza"),
+                selected = c("COVID", "RSV", "Influenza")
+              ),
+              shiny::checkboxGroupInput(
+                inputId = "studies_population",
+                label = shiny::tags$strong("Population:"),
+                choices = c("Pediatric", "Adult", "Pregnant", "Immunocompromised"),
+                selected = c("Pediatric", "Adult", "Pregnant", "Immunocompromised")
+              )
+            ),
+            DT::DTOutput("table_studies")
+          ),
+          style = "resize:vertical;"
+        )
       )
-
-      # Tables tab --------------------------------------------------------------
-      #shiny::tabPanel(
-      #  title = "Raw data",
-      #  icon = table_icon,
-      #  style = tab_style,
-      #  editTableUI("table_studies")
-      #)
     )
   )
   server <- function(input, output, session) {
-    ## TODO: add input vax to slice_data to allow subsetting by selected vaccine products. Will also need UI support
-    data_heatmap_ve <- shiny::reactive({
-      tryElse(slice_data(x = input$x_var_ve, y = input$y_var_ve, domain = "ve", pop = input$pop_ve, virus = input$virus_ve))
-    })
-    data_heatmap_ae <- shiny::reactive({
-      tryElse(slice_data(x = input$x_var_ae, y = input$y_var_ae, domain = "ae", pop = input$pop_ae, virus = input$virus_ae))
-    })
-
-    ## Domain data
-    domain <- shiny::reactive({
-      shiny::req(isTRUE(input$show_domain_heatmap))
-      pops_selected <- tolower(input$pop)
-      idx <- pops_selected == "peds"
-      if (any(idx)) {
-        pops_selected <- c(pops_selected[!idx], "infant", "child")
-      }
-      idx <- pops_selected == "adult"
-      if (any(idx)) {
-        pops_selected <- c(pops_selected[!idx], "adult", "elder")
-      }
-      cols <- intersect(pops_selected, names(data_domain))
-      df <- data_domain[tryElse(apply(data_domain[cols], 1, function(x) sum(x, na.rm = TRUE) > 0), otherwise = FALSE), , drop = FALSE]
-      df <- df[df$virus %in% input$virus, , drop = FALSE]
-      if (nrow(df) != 0L) {
-        if (input$x_var == "vax_product" || input$y_var == "vax_product") {
-          NULL
-        } else {
-          dplyr::distinct(df, .data$id_redcap, .data$virus, .data$domain, .keep_all = TRUE)
-        }
-      } else {
-        NULL
-      }
+    studies <- shiny::reactiveVal(data)
+    studies_plot <- shiny::reactive({
+      tryElse(
+        plot_crosstable2(
+          df = studies(),
+          x = "virus",
+          y = "population",
+          label_size = 18,
+          #plot_margin = ggplot2::margin(r = 30, t = 10, b = 10, l = 10),
+          font_size = 16
+        )
+      )
     })
 
-    # Meta analysis tab
-    #output$plot_forest <- shiny::renderPlot({
+    shiny::observeEvent(c(input$studies_virus, input$studies_population), {
+      shiny::req(!is.null(input$studies_virus) && !all(input$studies_virus == ""))
+      shiny::req(!is.null(input$studies_population) && !all(input$studies_population == ""))
+      studies(data[data$virus %in% input$studies_virus & data$population %in% input$studies_population, ])
+    })
+
+    # Plot output
+    output$plot_studies <- shiny::renderPlot({
+      studies_plot()
+    })
+    #output$plot_studies <- plotly::renderPlotly({
+    #  shiny::req(inherits(studies_plot(), "ggplot"))
+    #  out <- plot_interactive(
+    #    .plot = studies_plot(),
+    #    .toolbar_buttons = "toImage",
+    #    .x_axis_title = NULL,
+    #    .y_axis_title = NULL,
+    #    .x_axis_position = "top"
+    #  )
+    #  out <- plotly::style(
+    #    out,
+    #    hoverinfo = "skip",
+    #    traces = which(!vapply(out$x$data, function(x) any(names(x) == "fill"), logical(1), USE.NAMES = FALSE))
+    #  )
+    #  out <- plotly::layout(out, dragmode = "select")
+    #  out <- plotly::event_register(out, "plotly_selecting")
+    #  out
     #})
+    #abers::debug_editorServer()
 
-    ## Stats data
-    stats <- shiny::reactive({
-      NULL
-    })
-
-    domain_out <- crosstableServer("domain_tab", data_domain)
-    ve_out <- crosstableServer("ve_tab", data_ve)
-    ae_out <- crosstableServer("ae_tab", data_ae)
-
-    ## Stats tab
-    output$plot_stats <- plotly::renderPlotly({
-      #output$plot_stats <- shiny::renderPlot({
-      #shiny::req(df_stats, input$stats_log, input$stats_color_var, input$stats_font_size, input$stats_point_size, input$stats_show_legend, input$stats_ratio)
-      df_stats <- stats()
-      df_stats <- df_stats[df_stats$or > 0 & is.finite(df_stats$or), , drop = FALSE]
-      if (input$stats_log) {
-        df_stats$or <- log2(df_stats$or)
-        y_title <- "log2 OR"
+    # Raw data
+    output$table_studies <- DT::renderDataTable({
+      click <- input$plot_studies_dbl_click %||% input$plot_studies_click
+      tmp <- if (is.null(click)) {
+        studies()
       } else {
-        y_title <- "OR"
+        x_pos <- get_position(click$x, "x")
+        y_pos <- get_position(click$y, "y")
+        tryElse(studies()[studies()$population == y_pos & studies()$virus == x_pos, ], studies())
       }
-      p <- if (input$stats_group_by == "vax_product") {
-        # abers::plot_point(
-        #   df_stats,
-        #   #or ~ outcome_combined, point_color_var = "outcome",
-        #   or ~ vax_product, grouping_var = "outcome", point_color_var = input$stats_color_var,
-        #   x_angle = 45,
-        #   base_size = input$stats_font_size,
-        #   point_size = input$stats_point_size,
-        #   point_border_thickness = 0.5,
-        #   y_axis_title = y_title,
-        #   show_legend = input$stats_show_legend,
-        #   ratio = input$stats_ratio
-        # )
-      } else {
-        # abers::plot_point(
-        #   df_stats,
-        #   #or ~ outcome_combined, point_color_var = "outcome",
-        #   or ~ outcome, grouping_var = "vax_product", point_color_var = input$stats_color_var,
-        #   x_angle = 45,
-        #   base_size = input$stats_font_size,
-        #   point_size = input$stats_point_size,
-        #   point_border_thickness = 0.5,
-        #   y_axis_title = y_title,
-        #   show_legend = input$stats_show_legend,
-        #   ratio = input$stats_ratio
-        # )
-      }
-      tooltip_vars <- setdiff(tooltip_default, names(p$data))
-      for (i in tooltip_vars) {
-        p$data[[i]] <- tryElse(.subset2(data_stats, i))
-      }
-      p$mapping <- c(p$mapping, ggplot2::aes(
-        virus = .data$virus,
-        vax_product = .data$vax_product,
-        outcome = .data$outcome,
-        redcap = .data$id_redcap,
-        covidence = .data$id_covidence,
-        article = .data$article,
-        design = .data$study_design,
-        vax_total = .data$n_vaccinated_total,
-        vax_yes = .data$n_vaccinated_with_outcome,
-        unvax_total = .data$n_unvaccinated_total,
-        unvax_yes = .data$n_unvaccinated_with_outcome,
-        infant = .data$infant,
-        child = .data$child,
-        adult = .data$adult,
-        elder = .data$elder,
-        preg = .data$preg,
-        immunocomp = .data$immunocomp
-      ))
-      p$labels$x <- ""
-      p$labels$y <- y_title
-      plot_interactive(p, show_legend = input$stats_show_legend)
+      #tmp <- plotly::event_data("plotly_click")
+      #z <- shiny::nearPoints(
+      #  df = data,
+      #  coordinfo = input$plot_studies_click,
+      #  xvar = "virus",
+      #  yvar = "population"
+      #)
+      #if (!is.null(tmp)) browser()
+      rownames(tmp) <- NULL
+      tmp$id_redcap <- tmp$id_covidence <- tmp$title <- NULL
+      #tmp$link <- paste0('<a href="', utils::URLdecode(tmp$link),'" target="_blank">', tmp$article, "</a>")
+      tmp$article <- paste0('<a href="', utils::URLdecode(tmp$link),'" target="_blank">', tmp$article, "</a>")
+      #tmp <- tmp[unique(c("link", "article", names(tmp)))]
+      tmp <- tmp[unique(c("article", names(tmp)))]
+      DT::datatable(
+        tmp,
+        escape = FALSE,
+        extensions = c("Buttons", "FixedColumns", "FixedHeader"),
+        selection = "none",
+        rownames = FALSE,
+        options = list(
+          scrollX = TRUE,
+          fixedHeader = TRUE,
+          fixedColumns = list(leftColumns = 1),
+          dom = "Bfrtip",
+          buttons = c("copy", "csv", "excel", "pdf")
+        )
+      )
     })
+    # More to come
   }
   shiny::shinyApp(ui, server)
 }

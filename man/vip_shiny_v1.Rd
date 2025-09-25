@@ -2,7 +2,7 @@
 % Please edit documentation in R/shiny_v1.R
 \name{vip_shiny_v1}
 \alias{vip_shiny_v1}
-\title{Run shiny app}
+\title{Run shiny app v1}
 \usage{
 vip_shiny_v1(
   data = tryElse(df_shiny),
@@ -33,5 +33,5 @@ vip_shiny_v1(
 Shiny app run in new window
 }
 \description{
-Run shiny app
+Run shiny app v1
 }
