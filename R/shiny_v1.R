@@ -76,12 +76,7 @@ vip_shiny_v1 <- function(
   ui <- bslib::page_fluid(
     theme = theme,
     header,
-    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".accordion-button{font-size:large;font-weight:bold;color:%s;}", accordion_text_color)))),
-    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".accordion-title{font-size:large;font-weight:bold;color:%s;}", accordion_text_color)))),
-    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".accordion-icon{font-size:large;font-weight:bold;color:%s;}", accordion_text_color)))),
     shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".nav-tabs{--bs-nav-link-color:%s;--bs-nav-tabs-link-active-color:%s;}", primary_color, secondary_color)))),
-    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs--shiny .irs-bar{border-top:1px solid %s;border-bottom:1px solid %s;background:%s;}.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single{background-color:%s;}.irs--shiny .irs-handle{background-color:%s;}", slider_color, slider_color, slider_color, slider_color, slider_color)))),
-    #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs.irs--shiny .irs-handle:focus-visible, .irs.irs--shiny .irs-handle:active{color:%s;background-color:%s;border-color:%s;}", slider_color, slider_color, slider_color)))),
     shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs--shiny .irs-handle.state_hover, .irs--shiny .irs-handle:hover{background-color:%s;", slider_color)))),
     shiny::tabsetPanel(
       id = "tabs",
@@ -93,10 +88,9 @@ vip_shiny_v1 <- function(
         style = tab_style,
         bslib::card(
           shiny::tags$img(src = "assets/logo.svg", style = "height:200px;"),
-          shiny::tags$h1(shiny::tags$text("Welcome to the Vaccine Integrity Project!", style = sprintf("vertical-align:middle;padding-top:30px;font-size:25px;color:%s;", primary_color)), style = "color:#333;padding:5px;"),
+          shiny::tags$h1(shiny::tags$text("Welcome to the Vaccine Integrity Project!", style = sprintf("font-weight:bold;vertical-align:middle;padding-top:30px;font-size:25px;color:%s;", primary_color)), style = "color:#333;padding:5px;"),
           shiny::tags$br(),
           shiny::tags$a("Project homepage", href = "https://www.cidrap.umn.edu/vaccine-integrity-project"),
-          shiny::tags$br(),
           shiny::tags$a("YouTube link to presentation", href = "https://www.youtube.com/watch?v=lSuvGlxqrpg"),
           shiny::tags$br(),
           landing_page_text
