@@ -75,3 +75,8 @@ ggplot object
 \description{
 Plot cross table displaying the number of studies in a given domain for every virus (or vaccine product)
 }
+\examples{
+plot_crosstable(VIP::ve, x = "virus", y = "vax_product")
+plot_crosstable(VIP::domain, x = "virus", y = "domain")
+
+}

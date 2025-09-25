@@ -285,7 +285,7 @@ ae <- ae |>
       is.na(date_end_year) ~ as.character(date_start_year),
       .default = paste(date_start_year, date_end_year, sep = "-")
     ),
-    article = paste(author, pubyear),
+    #article = paste(author, pubyear),
     virus = case_when(
       virus == "Multiple" & !is.na(outcome_virus) ~ outcome_virus,
       virus == "Multiple" & covid == 1 & rsv == 0 & flu == 0 ~ "COVID",

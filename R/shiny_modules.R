@@ -65,8 +65,8 @@ crosstableUI <- function(
   plot_card_style <- shiny::tags$head(
     shiny::tags$style(
       shiny::HTML(
-      sprintf(".parent-card {display: flex;height: 100vh;overflow: hidden;}
-      .plot-card {
+      sprintf(".parent-card{display:flex;height:100vh;overflow:hidden;}
+      .plot-card{
         flex-grow: 1;
         margin: 5px;
         padding: 20px;
@@ -78,6 +78,52 @@ crosstableUI <- function(
       )
       )
   )
+  #font_size_ui_data <- shiny::sliderInput(
+  #  inputId = ns("font_size_data"),
+  #  label = shiny::tags$strong("Font size (data)"),
+  #  min = 0,
+  #  max = 40,
+  #  value = 14,
+  #  step = 0.5
+  #)
+  font_size_ui_data <- incrementorInput(
+    inputId = ns("font_size_data"),
+    label = "Data",
+    button_color = incrementor_button_color,
+    button_text_color = .clr_text(incrementor_button_color),
+    min = 0,
+    max = 40,
+    value = 14,
+    step = 1
+  )
+  font_size_ui_labels <- incrementorInput(
+    inputId = ns("font_size_labels"),
+    label = "Labels",
+    button_color = incrementor_button_color,
+    button_text_color = .clr_text(incrementor_button_color),
+    min = 0,
+    max = 40,
+    value = 14,
+    step = 1
+  )
+  margin_top <- incrementorInput(
+    inputId = ns("margin_top"),
+    label = "Top",
+    button_color = incrementor_button_color,
+    button_text_color = .clr_text(incrementor_button_color),
+    value = 10,
+    step = 5
+  )
+  margin_right <- incrementorInput(
+    inputId = ns("margin_right"),
+    label = "Right",
+    button_color = incrementor_button_color,
+    button_text_color = .clr_text(incrementor_button_color),
+    value = 30,
+    step = 5
+  )
+
+  # UI
   bslib::layout_sidebar(
     shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs--shiny .irs-bar{border-top:1px solid %s;border-bottom:1px solid %s;background:%s;}.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single{background-color:%s;}.irs--shiny .irs-handle{background-color:%s;}", slider_color, slider_color, slider_color, slider_color, slider_color)))),
     plot_card_style,
@@ -111,46 +157,26 @@ crosstableUI <- function(
         bslib::accordion_panel(
           title = "Plot style",
           icon = shiny::icon("palette", verify_fa = FALSE),
-          switchInput(inputId = ns("color_by_virus"), label = shiny::tags$strong("Color by virus"), value = color_by_virus, on_color = switch_color),
-          shiny::sliderInput(
-            inputId = ns("font_size_data"),
-            label = shiny::tags$strong("Font size (data)"),
-            min = 0,
-            max = 40,
-            value = 14,
-            step = 0.5
+          switchInput(
+            inputId = ns("color_by_virus"),
+            label = shiny::tags$strong("Color by virus", style = sprintf("color:%s;", primary_color)),
+            value = color_by_virus,
+            on_color = switch_color
           ),
-          shiny::sliderInput(
-            inputId = ns("font_size_labels"),
-            label = shiny::tags$strong("Font size (labels)"),
-            min = 0,
-            max = 40,
-            value = 14,
-            step = 0.5
-          ),
-          shiny::sliderInput(
-            inputId = ns("aspect_ratio"),
-            label = shiny::tags$strong("Aspect ratio"),
-            min = 0.1,
-            max = 5,
-            value = 1,
-            step = 0.1
-          ),
-          incrementorInput(
-            inputId = ns("margin_right"),
-            label = shiny::strong("Pad right margin"),
-            button_color = incrementor_button_color,
-            value = 30,
-            button_text_color = .clr_text(incrementor_button_color)
-          ),
-          incrementorInput(
-            inputId = ns("margin_top"),
-            label = shiny::strong("Pad top margin"),
-            button_color = incrementor_button_color,
-            value = 10,
-            button_text_color = .clr_text(incrementor_button_color)
-          ),
-          if (show_legend_switch) switchInput(inputId = ns("show_legend"), label = shiny::tags$strong("Show legend"), value = FALSE, on_color = switch_color)
+          shiny::h5("Font size", style = sprintf("color:%s;font-weight:bolder;", primary_color)),
+          shiny::fluidRow(shiny::column(font_size_ui_data, width = 6), shiny::column(font_size_ui_labels, width = 6)),
+          #shiny::sliderInput(
+          #  inputId = ns("aspect_ratio"),
+          #  label = shiny::tags$strong("Aspect ratio"),
+          #  min = 0.1,
+          #  max = 5,
+          #  value = 1,
+          #  step = 0.1
+          #),
+          #vert_break(),
+          shiny::h5("Pad plot margins", style = sprintf("color:%s;font-weight:bolder;", primary_color)),
+          shiny::fluidRow(shiny::column(margin_top, width = 6), shiny::column(margin_right, width = 6)),
+          if (show_legend_switch) switchInput(inputId = ns("show_legend"), label = shiny::tags$strong("Show legend", style = sprintf("color:%s;", primary_color)), value = FALSE, on_color = switch_color)
         ),
         style = css_style
       )
@@ -208,7 +234,9 @@ crosstableUI <- function(
             shiny::tags$path(d = "M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm15 2h-4v3h4zm0 4h-4v3h4zm0 4h-4v3h3a1 1 0 0 0 1-1zm-5 3v-3H6v3zm-5 0v-3H1v2a1 1 0 0 0 1 1zm-4-4h4V8H1zm0-4h4V4H1zm5-3v3h4V4zm4 4H6v3h4z")
           )
         ),
-        DT::dataTableOutput(outputId = ns("raw_data"))
+        bslib::card(style = "resize: both;",
+          DT::dataTableOutput(outputId = ns("raw_data"))
+        )
       ),
       style = css_style
     )
@@ -223,6 +251,7 @@ crosstableUI <- function(
 #' @returns Reactive list containing "plot", "population", "virus", "vax_product", "x_var", "y_var"
 #' @export
 crosstableServer <- function(id, data, plotly_toolbar_buttons = "toImage") {
+  `%#%` <- function(x, y) if (is.null(x) || !is.numeric(x)) y else x
   is_reactive <- inherits(data, "reactive")
   col_contains <- function(x, col, levels) {
     vals <- .subset2(x, col)
@@ -254,8 +283,8 @@ crosstableServer <- function(id, data, plotly_toolbar_buttons = "toImage") {
           show_legend = input$show_legend %||% FALSE,
           label_size = input$font_size_labels,
           font_size = input$font_size_data,
-          #aspect_ratio = input$aspect_ratio,
-          plot_margin = ggplot2::margin(r = input$margin_right, t = input$margin_top, b = 10, l = 10)
+          #aspect_ratio = input$aspect_ratio %#% NULL,
+          plot_margin = ggplot2::margin(r = input$margin_right %#% 30, t = input$margin_top %#% 10, b = 10, l = 10)
         )
       )
     })
@@ -336,7 +365,7 @@ editTableUI <- function(id, ...) {
 #' Module server for data table
 #'
 #' @param id Input id. Must match `id` entered in `editTableUI`
-#' @param data Data frame for plotting
+#' @param df Data frame for plotting
 #' @param allowRowEdit If `TRUE`, data in table can be edited within app
 #' @param allowColumnEdit If `TRUE`, column names in table can be edited within app
 #' @param manualRowMove If `TRUE`, rows in table many be reordered within app

@@ -5,6 +5,7 @@
 #' @param r1,r2,c1,c2 Either name of column in `df` (as length 1 character vector) containing row/column sums in 2 x 2 matrix or a vector of counts with length equal to `nrow(df)` (or 1). Use `NULL` if column not present in `df`
 #' @param total Either name of column in `df` (as length 1 character vector) containing grand total of cell counts in 2 x 2 matrix or a vector of counts with length equal to `nrow(df)` (or 1). Use `NULL` if column not present in `df`
 #' @param replace_columns If `TRUE`, original count columns are replaced by calculated counts with new columns added for counts not included in `df`. If `FALSE` (default), calculated counts added as separate columns. Names for any newly added columns include: ".r1c1", ".r1c2", ".r2c1", ".r2c2", ".r1", ".r2", ".c1", ".c2", ".total". If naming collisions occur, prior column names will be overwritten with new column names
+#' @param haldane_correction If `TRUE`, Haldane correction is applied when 0 counts are present
 #' @returns Data frame with containing calculated counts. Regardless of input to `replace_columns`, output will include a logical column named ".calculable" indicating whether all counts could be calculated for a given row
 #' @export
 fill_2x2 <- function(

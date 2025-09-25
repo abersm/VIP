@@ -29,6 +29,8 @@ fill_2x2(
 \item{total}{Either name of column in \code{df} (as length 1 character vector) containing grand total of cell counts in 2 x 2 matrix or a vector of counts with length equal to \code{nrow(df)} (or 1). Use \code{NULL} if column not present in \code{df}}
 
 \item{replace_columns}{If \code{TRUE}, original count columns are replaced by calculated counts with new columns added for counts not included in \code{df}. If \code{FALSE} (default), calculated counts added as separate columns. Names for any newly added columns include: ".r1c1", ".r1c2", ".r2c1", ".r2c2", ".r1", ".r2", ".c1", ".c2", ".total". If naming collisions occur, prior column names will be overwritten with new column names}
+
+\item{haldane_correction}{If \code{TRUE}, Haldane correction is applied when 0 counts are present}
 }
 \value{
 Data frame with containing calculated counts. Regardless of input to \code{replace_columns}, output will include a logical column named ".calculable" indicating whether all counts could be calculated for a given row

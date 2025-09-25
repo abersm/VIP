@@ -20,6 +20,11 @@
 #' @param plot_margin Plot margins
 #' @param ... Not used
 #' @returns ggplot object
+#'
+#' @examples
+#' plot_crosstable(VIP::ve, x = "virus", y = "vax_product")
+#' plot_crosstable(VIP::domain, x = "virus", y = "domain")
+#'
 #' @export
 plot_crosstable <- function(
     df,
@@ -62,23 +67,23 @@ plot_crosstable <- function(
     df <- dplyr::count(df, .data$.x, .data$.y)
     if (x == "virus") {
       df$.x <- as.character(df$.x)
-      for (i in setdiff(c("COVID", "RSV", "Influenza"), unique(df$.x))) {
+      for (i in setdiff(.virus_levels, unique(df$.x))) {
         df <- dplyr::bind_rows(df, df[1L, ])
         z <- nrow(df)
         df$.x[z] <- i
         df$n[z] <- NA_integer_
       }
-      df$.x <- factor(df$.x, levels = c("COVID", "RSV", "Influenza"))
+      df$.x <- factor(df$.x, levels = .virus_levels)
     }
     if (y == "virus") {
       df$.y <- as.character(df$.y)
-      for (i in setdiff(c("COVID", "RSV", "Influenza"), unique(df$.y))) {
+      for (i in setdiff(.virus_levels, unique(df$.y))) {
         df <- dplyr::bind_rows(df, df[1L, ])
         z <- nrow(df)
         df$.y[z] <- i
         df$n[z] <- NA_integer_
       }
-      df$.y <- factor(df$.y, levels = c("COVID", "RSV", "Influenza"))
+      df$.y <- factor(df$.y, levels = .virus_levels)
     }
   } else {
     df <- droplevels(df)
@@ -158,6 +163,11 @@ plot_crosstable <- function(
 #' @inheritParams plot_crosstable
 #' @param colors Named vector of colors for each virus
 #' @returns ggplot object
+#'
+#' @examples
+#' plot_crosstable(VIP::ve, x = "virus", y = "vax_product")
+#' plot_crosstable2(VIP::domain, x = "virus", y = "domain")
+#'
 #' @export
 plot_crosstable2 <- function(
     df,
@@ -182,7 +192,7 @@ plot_crosstable2 <- function(
     ...) {
   if (any(names(df) == "vax_product") && (identical(x, "vax_product") || identical(y, "vax_product"))) {
     if (is.null(plot_margin) && identical(x, "vax_product")) {
-      plot_margin <- ggplot2::margin(r = 50)
+      plot_margin <- ggplot2::margin(r = 50, t = 0, b = 0, l = 0)
     }
     df <- df[df$vax_product != "Other", , drop = FALSE]
   }
@@ -198,7 +208,7 @@ plot_crosstable2 <- function(
   if (show_empty_levels) {
     df <- dplyr::count(df, .data$virus, .data$.x, .data$.y)
     df$virus <- as.character(df$virus)
-    for (i in setdiff(c("COVID", "RSV", "Influenza"), unique(df$virus))) {
+    for (i in setdiff(.virus_levels, unique(df$virus))) {
       df <- dplyr::bind_rows(df, df[1L, ])
       z <- nrow(df)
       df$virus[z] <- i
@@ -210,18 +220,17 @@ plot_crosstable2 <- function(
       }
       df$n[z] <- NA_integer_
     }
-    df$virus <- factor(df$virus, levels = c("COVID", "RSV", "Influenza"))
+    df$virus <- factor(df$virus, levels = .virus_levels)
     if (x == "virus") {
-      df$.x <- factor(df$.x, levels = c("COVID", "RSV", "Influenza"))
+      df$.x <- factor(df$.x, levels = .virus_levels)
     }
     if (y == "virus") {
-      df$.y <- factor(df$.y, levels = c("COVID", "RSV", "Influenza"))
+      df$.y <- factor(df$.y, levels = .virus_levels)
     }
   } else {
     df <- droplevels(df)
     df <- dplyr::count(df, .data$virus, .data$.x, .data$.y)
   }
-  #df$alpha <- dplyr::percent_rank(df$n)
   n <- df$n
   df$alpha <- (n - mean(n, na.rm = TRUE))/stats::sd(n, na.rm = TRUE)
   df$alpha <- fill_alpha <- scales::rescale(df$alpha, to = c(0.1, 1))
@@ -234,7 +243,7 @@ plot_crosstable2 <- function(
       aspect_ratio <- if (aspect_ratio > 1) aspect_ratio - 1 else aspect_ratio*1.1
     }
   }
-  plot_margin <- plot_margin %||% if (aspect_ratio > 2) ggplot2::margin(t = 10, r = 30, b = 10) else if (aspect_ratio > 0.5)  ggplot2::margin(t = 0, r = 40, b = 10) else NULL
+  plot_margin <- plot_margin %||% if (aspect_ratio > 2) ggplot2::margin(t = 10, l = 0, r = 30, b = 10) else if (aspect_ratio > 0.5)  ggplot2::margin(t = 0, r = 40, b = 10, l = 0) else NULL
   blank <- ggplot2::element_blank()
   theme_axis_text <- ggplot2::element_text(color = "black", size = label_size)
   theme_x_axis_text <- if (x_axis_label_angle == 0) {

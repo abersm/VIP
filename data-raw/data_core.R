@@ -79,8 +79,6 @@ new <- gsub("ve_outcome_([0-9]+)_(text|other)", "ve_outcome_\\2_\\1", new, perl 
 new <- gsub("ve_outcome_text_([0-9]+)_([0-9]+)", "ve_outcome_text_\\1_v\\2", new, perl = TRUE)
 new <- gsub("ve_(v[0-9]+)_complete", "ve_complete_\\1", new, perl = TRUE)
 new <- gsub("vax([0-9]+)_type", "vax_type_\\1", new, perl = TRUE)
-#new <- gsub("coadmin_sero_([0-9]+)", "coadmin_is_vs_solo_\\1", new, perl = TRUE)
-#new[new == "coadmin_sero"] <- "coadmin_is_vs_solo"
 
 # Create lookup table to rename variables
 dict <- c(
@@ -162,7 +160,9 @@ dict <- c(
 
 # Check to make sure all names(dict) are included in original
 ## Output should be TRUE
-all(names(dict) %in% original)
+if (!all(names(dict) %in% original)) {
+  stop("1 or more column names are not included in dict")
+}
 
 # Create final lookup table
 dict <- data.frame(
@@ -355,6 +355,109 @@ coadmin_comparison_lookup <- c(
   "5" = "Not reported"
 )
 
+# Exclude studies ---------------------------------------------------------
+
+# Remove errors in redcap ID coding
+core <- core |>
+  filter(
+    !(id_redcap == 625 & id_covidence == "#24" & is.na(reviewer)),
+    !(id_redcap == 626 & id_covidence == "#6251")
+  )
+
+# Update "exclude" column in "core"
+core$exclude[is.na(core$exclude)] <- 0L
+
+# Use data tracker to guide exclusion
+is_row_hidden <- function(sheet = NULL, file_path = system.file("data-raw", "Data Extraction Tracker.xlsx", package = "VIP")) {
+  openpyxl <- reticulate::import("openpyxl")
+  workbook <- openpyxl$load_workbook(file_path)
+  all_sheets <- workbook$sheetnames
+  if (is.null(sheet)) {
+    sheet <- all_sheets
+  } else if (is.numeric(sheet)) {
+    sheet <- all_sheets[sheet]
+  }
+  out <- lapply(sheet, function(x) {
+    worksheet <- workbook[[x]]
+    is_hidden <- vapply(seq_len(worksheet$max_row), function(i) worksheet$row_dimensions[[i]]$hidden, logical(1), USE.NAMES = FALSE)
+    is_hidden[-1L]
+  })
+  if (length(out) == 1L) return(out[[1L]])
+  names(out) <- sheet
+  out
+}
+
+include <- readxl::read_excel(system.file("data-raw", "Data Extraction Tracker.xlsx", package = "VIP"), sheet = 1, skip = 2, .name_repair = "none")
+include <- include[["Covidence #"]]
+exclude <- readxl::read_excel(system.file("data-raw", "Data Extraction Tracker.xlsx", package = "VIP"), sheet = 2, skip = 0, .name_repair = "none")
+exclude <- exclude[["Covidence #"]]
+
+# Remove hidden rows
+if (any(is_row_hidden(sheet = 1))) {
+  stop("'include' contains 1 or more hidden rows")
+}
+if (length(is_row_hidden(sheet = 2)) != length(exclude)) {
+  stop("Length of 'exclude' does not match output from 'is_row_hidden'")
+}
+exclude <- exclude[!is_row_hidden(sheet = 2)]
+
+ids <- core[c("id_covidence", "exclude")]
+if (anyNA(ids$exclude)) {
+  stop("1 or more missing values in 'exclude' column of 'core'")
+}
+ids$exclude <- ifelse(ids$exclude == 1, "exclude_core", "include_core")
+ids <- c(list(
+  include = include,
+  exclude = exclude
+)) %>%
+  lapply(function(x) {
+    #x <- gsub("[^0-9#]", "", x)
+    x[x == "#4856"] <- "#4856 - exclude"
+    x[x == "#116"] <- "_#116"
+    x[x == "#2063"] <- "_#2063"
+    x
+  }) %>%
+  c(split(ids$id_covidence, ids$exclude))
+
+# Concordance between Data Tracker and redcap data (core)
+#setdiff(ids$include, ids$include_core)
+#setdiff(ids$include_core, ids$include)
+
+#setdiff(ids$exclude, ids$exclude_core)
+#setdiff(ids$exclude_core, ids$exclude)
+
+# Discordance between Data Tracker and redcap data (core)
+#intersect(ids$include, ids$exclude_core)
+#intersect(ids$exclude, ids$include_core)
+
+# Discordance within Data Trackers
+#intersect(ids$include, ids$exclude)
+
+# Concordance for exclusion between core, include, and exclude
+id_exclude <- setdiff(intersect(ids$exclude_core, ids$exclude), ids$include)
+core <- core[!(core$id_covidence %in% id_exclude), ]
+
+# Clean up workspace
+remove(exclude, id_exclude, ids, include, is_row_hidden)
+
+# Population --------------------------------------------------------------
+
+pop_lookup <- readxl::read_excel(system.file("data-raw", "pop_lookup.xlsx", package = "VIP")) |>
+  select(id_redcap, infant, child, adult, elder, preg, immunocomp)
+names(pop_lookup)[-1L] <- paste0(names(pop_lookup)[-1L], "_new")
+core <- core |>
+  left_join(pop_lookup, by = "id_redcap") |>
+  mutate(
+    infant = ifelse(is.na(infant_new), infant, infant_new),
+    child = ifelse(is.na(child_new), child, child_new),
+    adult = ifelse(is.na(adult_new), adult, adult_new),
+    elder = ifelse(is.na(elder_new), elder, elder_new),
+    preg = ifelse(is.na(preg_new), preg, preg_new),
+    immunocomp = ifelse(is.na(immunocomp_new), immunocomp, immunocomp_new)
+  ) |>
+  select(-c(infant_new, child_new, adult_new, elder_new, preg_new, immunocomp_new))
+remove(pop_lookup)
+
 # Clean data --------------------------------------------------------------
 
 lookup_fn <- function(lookup) {
@@ -369,7 +472,6 @@ lookup_fn <- function(lookup) {
 }
 
 core <- core |>
-  filter(is.na(exclude) | exclude == 0) |>
   mutate(
     across(contains("complete"), function(x) {
       if (!is.integer(x) || max(x, na.rm = TRUE) > 2) return(x)
@@ -409,7 +511,8 @@ core <- core |>
       .default = perc_premature
     ),
     population_other = ifelse(population_other_incl == 1 & !is.na(population_other), population_other, NA_character_),
-    author = gsub(" [0-9]{4}", "", author)
+    author = gsub(" [0-9]{4}", "", author),
+    article = paste(author, pubyear)
   ) |>
   select(-population_other_incl)
 
@@ -538,9 +641,9 @@ if (length(comments$comments[!is.na(comments$comments)]) == 1L && comments$comme
 }
 
 # Determine which columns in comments are article specific (and can therefore be added to core)
-intersect(names(comments), names(core))
-setdiff(names(comments), names(core))
-sort(grepv("^id_redcap|^ae_|^ve_|^epi_|^coadmin|_v?[0-9]+$", names(comments), invert = TRUE))
+#intersect(names(comments), names(core))
+#setdiff(names(comments), names(core))
+#sort(grepv("^id_redcap|^ae_|^ve_|^epi_|^coadmin|_v?[0-9]+$", names(comments), invert = TRUE))
 z <- c("id_redcap", "date_end_month", "date_end_year", "date_start_month", "date_start_year", "immunocomp_def", "perc_premature", "population", "population_disagg", "population_other", "study_design", "study_setting", "virus")
 
 remove_rows_all_na <- function(df, ...) {

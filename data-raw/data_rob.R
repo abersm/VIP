@@ -5,14 +5,11 @@
 library(tidyr)
 library(dplyr)
 
-bias <- utils::read.csv(paste_path("VIPDataExtraction-ROBDomain_DATA_2025-09-09_1152.csv"), check.names = FALSE)
-bias_labels <- utils::read.csv(paste_path("VIPDataExtraction-ROBDomain_DATA_LABELS_2025-09-09_1152.csv"), check.names = FALSE)
+bias <- utils::read.csv(system.file("data-raw", "redcap_rob_domain.csv", package = "VIP"), check.names = FALSE)
+bias_labels <- utils::read.csv(system.file("data-raw", "redcap_rob_domain_labels.csv", package = "VIP"), check.names = FALSE)
 #names(bias) <- names(bias_labels)
 names(bias) <- c("id_redcap", "ae", "ve", "coadmin", "epi")
 remove(bias_labels)
-
-# Clean up workspace
-#remove()
 
 # Export data -------------------------------------------------------------
 

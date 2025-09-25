@@ -69,3 +69,19 @@
 #'   \item{id_redcap}{RedCAP id}
 #'   }
 "comments"
+
+#' Publicate info
+#'
+#' @format Data frame
+#' \describe{
+#'   \item{id_redcap}{RedCAP id}
+#'   }
+"pub_info"
+
+#' Data for 1st version of shiny app
+#'
+#' @format Data frame
+#' \describe{
+#'   \item{id_redcap}{RedCAP id}
+#'   }
+"df_shiny"

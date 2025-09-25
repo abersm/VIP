@@ -16,6 +16,8 @@ editTableServer(
 \arguments{
 \item{id}{Input id. Must match \code{id} entered in \code{editTableUI}}
 
+\item{df}{Data frame for plotting}
+
 \item{allowRowEdit}{If \code{TRUE}, data in table can be edited within app}
 
 \item{allowColumnEdit}{If \code{TRUE}, column names in table can be edited within app}
@@ -23,8 +25,6 @@ editTableServer(
 \item{manualRowMove}{If \code{TRUE}, rows in table many be reordered within app}
 
 \item{...}{Not used}
-
-\item{data}{Data frame for plotting}
 }
 \value{
 Enter into server of shiny app

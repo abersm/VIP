@@ -13,7 +13,7 @@ epi <- VIP::core |>
   select(-starts_with(c("ae_", "ve_", "coadmin_")), -c(ae, ve, coadmin)) |>
   #rename(n_vaccines_studied = ve_n_vaccines_studied) |>
   mutate(
-    article = paste(author, pubyear),
+    #article = paste(author, pubyear),
     study_period = case_when(
       is.na(date_start_year) ~ as.character(date_end_year),
       is.na(date_end_year) ~ as.character(date_start_year),

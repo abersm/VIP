@@ -77,7 +77,6 @@ vip_shiny <- function(
   )
   header <- shiny::headerPanel(
     shiny::tags$h1(
-      #shiny::tags$i(shiny::tags$img(src = base64enc::dataURI(file = system.file("data-raw", "logo.svg", package = "VIP"), mime = "image/svg+xml"))),
       shiny::tags$img(src = "assets/logo.svg"),
       shiny::tags$text("Vaccine Integrity Project", style = sprintf("vertical-align:middle;float:right;padding-top:30px;font-size:25px;color:%s;", primary_color)),
       style = "color:#333;padding:5px;"

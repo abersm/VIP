@@ -68,3 +68,8 @@ ggplot object
 \description{
 Version of \code{plot_crosstable} that uses separate colors for each virus
 }
+\examples{
+plot_crosstable(VIP::ve, x = "virus", y = "vax_product")
+plot_crosstable2(VIP::domain, x = "virus", y = "domain")
+
+}
