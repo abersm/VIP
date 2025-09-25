@@ -214,6 +214,7 @@ vip_shiny_v1 <- function(
         extensions = c("Buttons", "FixedColumns", "FixedHeader"),
         selection = "none",
         rownames = FALSE,
+        class = "display compact cell-border",
         options = list(
           scrollX = TRUE,
           fixedHeader = TRUE,
