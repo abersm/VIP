@@ -78,14 +78,3 @@ install.packages("devtools")
 # Install VIP package from github repository
 devtools::install_github("abersm/VIP")
 ```
-
-## Running shiny app
-After installing package (see above), initialize the application by running the following: 
-
-``` r
-# Load VIP package
-library(VIP)
-
-# Run shiny app
-vip_shiny()
-```
