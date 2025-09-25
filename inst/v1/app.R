@@ -100,6 +100,7 @@ ui <- bslib::page_fluid(
       #abers::debug_editorUI(),
       icon = shiny::icon("book", verfiy_fa = FALSE),
       style = tab_style,
+      shiny::tags$h1("WARNING: DATA ARE SUBJECT TO CHANGE. WE HAVE NOT FINISHED DATA ANALYSIS!", style = "color:red;"),
       bslib::layout_columns(
         bslib::card(
           style = "resize:vertical;",
