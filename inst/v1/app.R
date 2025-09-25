@@ -8,6 +8,10 @@ tryElse <- function(x, otherwise = NULL, silent = TRUE) {
   }
 }
 
+alert <- function(..., status = "default", fade = TRUE) {
+  shiny::tags$div(class = paste(sprintf("alert alert-%s alert-dismissible", status), if (fade) "fade show"), ..., shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "alert"))
+}
+
 data <- utils::read.csv(system.file("v1", "df_shiny.csv", package = "VIP"))
 primary_color <- "#246A87"
 secondary_color <- "#A63B86"
@@ -105,7 +109,8 @@ ui <- bslib::page_fluid(
         bslib::card(
           style = "resize:vertical;",
           #plotly::plotlyOutput(outputId = "plot_studies", width = "100%", height = "400px")
-          shiny::plotOutput(outputId = "plot_studies", width = "100%", height = "400px", click = "plot_studies_click", dblclick = "plot_studies_dbl_click")
+          #shiny::plotOutput(outputId = "plot_studies", width = "100%", height = "400px", click = "plot_studies_click", dblclick = "plot_studies_dbl_click")
+          shiny::plotOutput(outputId = "plot_studies", width = "100%", height = "400px", click = "plot_studies_click")
         ),
         bslib::card(
           style = "resize:vertical;",
@@ -177,7 +182,7 @@ server <- function(input, output, session) {
 
   # Raw data
   output$table_studies <- DT::renderDataTable({
-    click <- input$plot_studies_dbl_click %||% input$plot_studies_click
+    click <- input$plot_studies_click
     tmp <- if (is.null(click)) {
       studies()
     } else {
