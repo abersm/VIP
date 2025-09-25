@@ -1,3 +1,5 @@
+devtools::install_github("abersm/VIP")
+
 tryElse <- function(x, otherwise = NULL, silent = TRUE) {
   if (silent) {
     tryCatch(suppressWarnings(x), error = function(e) otherwise)
@@ -6,7 +8,7 @@ tryElse <- function(x, otherwise = NULL, silent = TRUE) {
   }
 }
 
-data <- VIP::df_shiny
+data <- utils::read.csv(system.file("v1", "df_shiny.csv", package = "VIP"))
 primary_color <- "#246A87"
 secondary_color <- "#A63B86"
 slider_color <- primary_color
