@@ -63,7 +63,6 @@ vip_shiny_v1 <- function(
     shiny::tags$h2(shiny::tags$strong("About the Vaccine Integrity Project:", style = sprintf("color:%s;", primary_color))),
     shiny::tags$p("CIDRAP's Vaccine Integrity Project is an initiative dedicated to safeguarding vaccine use in the U.S. so that it remains grounded in the best available science, free from external influence, and focused on optimizing protection of individuals, families, and communities against vaccine-preventable diseases."),
     shiny::tags$p("The Vaccine Integrity Project issued its final report from the planning phase summarizing its findings from the exploratory phase, focused on what is needed to ensure the integrity of the U.S. vaccine system, including vaccine evaluations and clinical guidelines based on rigorous and timely reviews."),
-    shiny::tags$br(),
     shiny::tags$p(
       "Now, Vaccine Integrity Project is moving into its planning phase and focusing on actions that stemmed from its earlier work:",
       shiny::tags$li(shiny::tags$strong("Implementing a rapid response accountability effort."), " In response to misleading and inaccurate claims, the Vaccine Integrity Project aims to launch a rapid response communications initiative to monitor and address vaccine- and public health-related misinformation originating from official, federal sources in real time."),
@@ -88,7 +87,8 @@ vip_shiny_v1 <- function(
         style = tab_style,
         bslib::card(
           shiny::tags$img(src = "assets/logo.svg", style = "height:200px;"),
-          shiny::tags$h1(shiny::tags$text("Welcome to the Vaccine Integrity Project!", style = sprintf("font-weight:bold;vertical-align:middle;padding-top:30px;font-size:25px;color:%s;", primary_color)), style = "color:#333;padding:5px;"),
+          shiny::tags$h1(shiny::tags$strong("Welcome to the Vaccine Integrity Project!", style = sprintf("color:%s;", primary_color))),
+          #shiny::tags$h1("Welcome to the Vaccine Integrity Project!", style = sprintf("font-weight:bolder;padding:5px;vertical-align:middle;padding-top:30px;color:%s;", primary_color)),
           shiny::tags$br(),
           shiny::tags$a("Project homepage", href = "https://www.cidrap.umn.edu/vaccine-integrity-project"),
           shiny::tags$a("YouTube link to presentation", href = "https://www.youtube.com/watch?v=lSuvGlxqrpg"),

@@ -60,7 +60,6 @@ landing_page_text <- shiny::tagList(
   shiny::tags$h2(shiny::tags$strong("About the Vaccine Integrity Project:", style = sprintf("color:%s;", primary_color))),
   shiny::tags$p("CIDRAP's Vaccine Integrity Project is an initiative dedicated to safeguarding vaccine use in the U.S. so that it remains grounded in the best available science, free from external influence, and focused on optimizing protection of individuals, families, and communities against vaccine-preventable diseases."),
   shiny::tags$p("The Vaccine Integrity Project issued its final report from the planning phase summarizing its findings from the exploratory phase, focused on what is needed to ensure the integrity of the U.S. vaccine system, including vaccine evaluations and clinical guidelines based on rigorous and timely reviews."),
-  shiny::tags$br(),
   shiny::tags$p(
     "Now, Vaccine Integrity Project is moving into its planning phase and focusing on actions that stemmed from its earlier work:",
     shiny::tags$li(shiny::tags$strong("Implementing a rapid response accountability effort."), " In response to misleading and inaccurate claims, the Vaccine Integrity Project aims to launch a rapid response communications initiative to monitor and address vaccine- and public health-related misinformation originating from official, federal sources in real time."),
@@ -85,12 +84,9 @@ ui <- bslib::page_fluid(
       style = tab_style,
       bslib::card(
         shiny::tags$img(src = "assets/logo.svg", style = "height:200px;"),
-        shiny::tags$h1(shiny::tags$text("Welcome to the Vaccine Integrity Project!", style = sprintf("vertical-align:middle;padding-top:30px;font-size:25px;color:%s;", primary_color)), style = "color:#333;padding:5px;"),
-        shiny::tags$br(),
+        shiny::tags$h1(shiny::tags$strong("Welcome to the Vaccine Integrity Project!", style = sprintf("color:%s;", primary_color))),
         shiny::tags$a("Project homepage", href = "https://www.cidrap.umn.edu/vaccine-integrity-project"),
-        shiny::tags$br(),
         shiny::tags$a("YouTube link to presentation", href = "https://www.youtube.com/watch?v=lSuvGlxqrpg"),
-        shiny::tags$br(),
         landing_page_text
       )
     ),
@@ -98,19 +94,19 @@ ui <- bslib::page_fluid(
     # Overview tab ------------------------------------------------------------
     shiny::tabPanel(
       title = "Studies",
-      # abers::debug_editorUI(),
+      #abers::debug_editorUI(),
       icon = shiny::icon("book", verfiy_fa = FALSE),
       style = tab_style,
       bslib::layout_columns(
         bslib::card(
-          # style = "resize:horizontal;",
-          # plotly::plotlyOutput(outputId = "plot_studies", width = "100%", height = "400px")
+          style = "resize:vertical;",
+          #plotly::plotlyOutput(outputId = "plot_studies", width = "100%", height = "400px")
           shiny::plotOutput(outputId = "plot_studies", width = "100%", height = "400px", click = "plot_studies_click", dblclick = "plot_studies_dbl_click")
         ),
         bslib::card(
-          # style = "resize:horizontal;",
+          style = "resize:vertical;",
           bslib::popover(
-            trigger = shiny::icon("sliders"),
+            trigger = shiny::icon("sliders", style = sprintf("border-radius:1rem;padding:0.3rem;background:%s;color:white;width:min-content;", primary_color)),
             shiny::checkboxGroupInput(
               inputId = "studies_virus",
               label = shiny::tags$strong("Virus:"),
@@ -125,8 +121,7 @@ ui <- bslib::page_fluid(
             )
           ),
           DT::DTOutput("table_studies")
-        ),
-        style = "resize:both;"
+        )
       )
     )
   )
@@ -174,7 +169,7 @@ server <- function(input, output, session) {
   #  out <- plotly::event_register(out, "plotly_selecting")
   #  out
   # })
-  # abers::debug_editorServer()
+  #abers::debug_editorServer()
 
   # Raw data
   output$table_studies <- DT::renderDataTable({
