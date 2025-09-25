@@ -51,7 +51,7 @@ theme <- bslib::bs_theme(
 )
 header <- shiny::headerPanel(
   shiny::tags$h1(
-    shiny::tags$img(src = "assets/logo.svg"),
+    shiny::tags$img(src = "logo.svg"),
     shiny::tags$text("Vaccine Integrity Project", style = sprintf("vertical-align:middle;float:right;padding-top:30px;font-size:25px;color:%s;", primary_color)),
     style = "color:#333;padding:5px;"
   )
@@ -85,7 +85,8 @@ ui <- bslib::page_fluid(
       icon = info_icon,
       style = tab_style,
       bslib::card(
-        shiny::tags$img(src = "assets/logo.svg", style = "height:200px;"),
+        #shiny::tags$img(src = "assets/logo.svg", style = "height:200px;"),
+        shiny::tags$img(src = "logo.svg", style = "height:200px;"),
         shiny::tags$h1(shiny::tags$strong("Welcome to the Vaccine Integrity Project!", style = sprintf("color:%s;", primary_color))),
         shiny::tags$a("Project homepage", href = "https://www.cidrap.umn.edu/vaccine-integrity-project"),
         shiny::tags$a("YouTube link to presentation", href = "https://www.youtube.com/watch?v=lSuvGlxqrpg"),
