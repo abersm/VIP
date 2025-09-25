@@ -453,7 +453,8 @@ core <- core |>
     adult = ifelse(is.na(adult_new), adult, adult_new),
     elder = ifelse(is.na(elder_new), elder, elder_new),
     preg = ifelse(is.na(preg_new), preg, preg_new),
-    immunocomp = ifelse(is.na(immunocomp_new), immunocomp, immunocomp_new)
+    immunocomp = ifelse(is.na(immunocomp_new), immunocomp, immunocomp_new),
+    immunocomp = ifelse(id_redcap == 205, 1, immunocomp)
   ) |>
   select(-c(infant_new, child_new, adult_new, elder_new, preg_new, immunocomp_new))
 remove(pop_lookup)
