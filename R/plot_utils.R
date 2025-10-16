@@ -206,3 +206,20 @@ margin_pad <- function(x, location = "tr") {
   df[[var_name]] <- var
   df
 }
+
+#' Add to ggplot object, subset of plots in patchwork object, or list of these objects
+#'
+#' @noRd
+add_to_plot <- function(plot, object, idx_patchwork = NULL) {
+  if (inherits(plot, "patchwork")) {
+    idx_patchwork <- idx_patchwork %||% seq_along(plot)
+    for (i in idx_patchwork) {
+      plot[[i]] <- plot[[i]] + object
+    }
+    plot
+  } else if (inherits(plot, "ggplot")) {
+    plot + object
+  } else {
+    lapply(plot, add_to_plot, object = object, idx_patchwork = idx_patchwork)
+  }
+}

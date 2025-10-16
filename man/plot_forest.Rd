@@ -52,7 +52,7 @@ plot_forest(
   odd_stripe_colors = "#22222222",
   even_stripe_colors = "#00000000",
   bracket_type = c("(", ")"),
-  label_digits = NULL,
+  label_digits = 0,
   base_size = 14,
   hjust = 1,
   ratio = 2.5,
@@ -61,6 +61,7 @@ plot_forest(
   expand_upper = 0,
   x_axis_include = NULL,
   cap = "both",
+  data_limits = NULL,
   ...
 )
 }
@@ -73,7 +74,7 @@ plot_forest(
 
 \item{grouping_var}{Grouping variable along y axis}
 
-\item{ordering_var}{Variable used to reorder rows in forest plot. If \code{NULL} (default), no reordering}
+\item{ordering_var}{Variable used to reorder rows in forest plot. If \code{NULL} (default), input is ignored}
 
 \item{point_size_var}{Variable to determine point size}
 
@@ -162,6 +163,8 @@ plot_forest(
 \item{x_axis_include}{Value to include along x axis. Only relevant when \code{x_axis_limits = NULL}}
 
 \item{cap}{Cap for x axis. Default is \code{"both"}}
+
+\item{data_limits}{x axis limits for error bars. Only changes plot appearance, not actually estimates/labels. Enter as length 2 numeric vector. Default is \code{NULL}, no limits applied}
 
 \item{...}{Arguments passed to \code{theme_vip}}
 }

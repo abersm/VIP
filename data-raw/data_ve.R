@@ -209,6 +209,7 @@ vax_suffix <- unlist(vax_suffix, use.names = FALSE)
 
 # Create list of vaccine IDs and outcome IDs for each column in df_vax_outcome
 id_vax <- regmatches(names(df_vax_outcome), gregexpr("_v[0-9]+", names(df_vax_outcome)))
+
 if (!all(lengths(id_vax) == 1L)) {
   stop("1 or more rows in df_vax_outcome contain > 1 outcome ID")
 }

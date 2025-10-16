@@ -18,7 +18,7 @@
 #' @param ... Arguments passed to scale function
 #' @returns ggproto object
 #' @export
-scale_axis <- function(
+continuous_axis <- function(
     axis = "y",
     scale = "regular",
     title = ggplot2::waiver(),

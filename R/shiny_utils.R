@@ -15,3 +15,32 @@ NS <- function(namespace = NULL, sep = "-") {
     paste(ns_prefix, id, sep = sep)
   }
 }
+
+#' Generate bookmark link for shiny app
+#'
+#' create_bookmark(studies_virus = c("COVID", "RSV"), studies_population = c("Adult", "Pregnant"))
+#' @noRd
+create_bookmark <- function(..., page = "https://cidrap.shinyapps.io/vip_v1/", tab = NULL) {
+  n <- ...length()
+  if (n == 0L) return(page)
+  args <- if (n == 1L && length(...names()) == 0L) c(...) else list(...)
+  input_ids <- names(args)
+  out <- vapply(seq_along(args), function(i) {
+    paste0(
+      "&",
+      input_ids[i],
+      "=%5B%22",
+      paste(args[[i]], collapse = "%22%2C%22"),
+      "%22%5D"
+    )
+  }, character(1), USE.NAMES = FALSE)
+  out <- paste(out, collapse = "")
+  if (!is.null(tab)) {
+    out <- paste0("&tabs=%22", tab, "%22", out)
+  }
+  paste0(
+    page,
+    "?_inputs_",
+    out
+  )
+}

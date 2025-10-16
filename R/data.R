@@ -70,13 +70,29 @@
 #'   }
 "comments"
 
-#' Publicate info
+#' Risk of bias assessment
+#'
+#' @format Data frame
+#' \describe{
+#'   \item{id_redcap}{RedCAP id}
+#'   }
+"rob"
+
+#' Publication info
 #'
 #' @format Data frame
 #' \describe{
 #'   \item{id_redcap}{RedCAP id}
 #'   }
 "pub_info"
+
+#' Study meta data
+#'
+#' @format Data frame
+#' \describe{
+#'   \item{id_redcap}{RedCAP id}
+#'   }
+"study_info"
 
 #' Data for 1st version of shiny app
 #'

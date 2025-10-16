@@ -123,7 +123,9 @@ plot_column_table <- function(
       stripes[[i]] +
       plot_table +
       ggplot2::ggtitle(col_headers[i]) +
-      plot_theme
+      plot_theme +
+      # Next line is new
+      ggplot2::coord_cartesian(clip = "off")
   })
 }
 

@@ -1,7 +1,8 @@
 #' Convert ggplot object to interactive plotly object
 #'
 #' @param .plot ggplot object
-#' @param ... Named list of variables to display in tooltip. Enter using same syntax as `ggplot2::aes`. Names control variable label in tooltip. Values should be variables in `.plot$data` entered as unquoted variable name or columns selected using `.data` prefix
+#' @param .vars Variables to display in tooltips. Enter as character vector of column names in `.plot@data`
+#' @param .var_names Names of variables to display in tooltips. Order/length must match input to `.vars`
 #' @param .hide_tooltips If `TRUE`, tooltip info is not displayed. Default is `FALSE`
 #' @param .show_legend If `TRUE`, legend is displayed. If `FALSE` (default), no legend is displayed
 #' @param .dynamic_ticks If `TRUE`, dynamic ticks are shown. If `FALSE` (default), dynamic ticks are not shown
@@ -14,7 +15,8 @@
 #' @noRd
 plot_interactive <- function(
   .plot,
-  ...,
+  .vars = NULL,
+  .var_names = NULL,
   .hide_tooltips = FALSE,
   .toolbar_buttons = c("toImage", "pan", "zoom", "zoomIn", "zoomOut", "resetScale"),
   .export_file_type = c("png", "jpg", "pdf", "svg"),
@@ -34,14 +36,22 @@ plot_interactive <- function(
   .traces_ignore_hover = NULL) {
   if (.hide_tooltips) {
     tooltip <- ""
-  } else if (...length() == 0L) {
+  } else if (is.null(.vars)) {
     tooltip <- "all"
   } else {
-    tooltip <- ...names()
-    .plot$mapping <- c(.plot$mapping, do.call(ggplot2::aes, alist(...)))
+    .var_names <- .var_names %||% .vars
+    .var_names <- gsub("^\\.", "", .var_names)
+    idx <- .vars %in% names(.plot@data)
+    .vars <- .vars[idx]
+    .var_names <- .var_names[idx]
+    #.plot$mapping <- c(.plot$mapping, do.call(ggplot2::aes, alist(...)))
+    for (i in seq_along(.vars)) {
+      .plot@data[[.var_names[i]]] <- .subset2(.plot@data, .vars[i])
+    }
+    tooltip <- if (length(.var_names) == 0L) "" else .var_names
   }
   if (!.show_legend) {
-    .plot$theme$legend.position <- "none"
+    .plot@theme$legend.position <- "none"
   }
   out <- tryCatch(
     suppressWarnings(plotly::ggplotly(.plot, dynamicTicks = .dynamic_ticks, tooltip = tooltip)),

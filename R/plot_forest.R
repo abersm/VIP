@@ -4,7 +4,7 @@
 #' @param estimate,lower,upper Columns in `df` containing effect estimate, lower, and upper bound of confidence interval, respectively
 #' @param y_var y axis variable. Should be categorical
 #' @param grouping_var Grouping variable along y axis
-#' @param ordering_var Variable used to reorder rows in forest plot. If `NULL` (default), no reordering
+#' @param ordering_var Variable used to reorder rows in forest plot. If `NULL` (default), input is ignored
 #' @param point_color_var Variable used to determine point color
 #' @param point_color Colors for points
 #' @param point_border_color Border color (stroke) for points
@@ -49,6 +49,7 @@
 #' @param dodge_width Width of dodging. Only relevant when `grouping_var` is specified. Default is `0.9`
 #' @param x_axis_include Value to include along x axis. Only relevant when `x_axis_limits = NULL`
 #' @param bracket_type Type of bracket to use for 95% CI label. Default is `c("(", ")")`
+#' @param data_limits x axis limits for error bars. Only changes plot appearance, not actually estimates/labels. Enter as length 2 numeric vector. Default is `NULL`, no limits applied
 #' @param ... Arguments passed to `theme_vip`
 #' @returns ggplot object
 #' @export
@@ -100,7 +101,7 @@ plot_forest <- function(
     odd_stripe_colors = "#22222222",
     even_stripe_colors = "#00000000",
     bracket_type = c("(", ")"),
-    label_digits = NULL,
+    label_digits = 0,
     base_size = 14,
     hjust = 1,
     ratio = 2.5,
@@ -109,27 +110,28 @@ plot_forest <- function(
     expand_upper = 0,
     x_axis_include = NULL,
     cap = "both",
+    data_limits = NULL,
     ...) {
   # Create variables for plotting
   df$.x <- as.numeric(.subset2(df, estimate))
   df$.x_min <- as.numeric(.subset2(df, lower))
   df$.x_max <- as.numeric(.subset2(df, upper))
   df <- .add_plot_var(df, var = y_var, var_name = ".y_var", if_null = seq_len(nrow(df)), as_fct = TRUE)
-  df <- .add_plot_var(df, var = label_var, var_name = ".label_var", as_fct = TRUE)
+  #df <- .add_plot_var(df, var = label_var, var_name = ".label_var", as_fct = TRUE)
+  df <- .add_plot_var(df, var = label_var, var_name = ".label_var", if_null = df$.y_var, as_fct = TRUE)
   df <- .add_plot_var(df, var = grouping_var, var_name = ".grouping_var", as_fct = TRUE)
   df <- .add_plot_var(df, var = ordering_var, var_name = ".ordering_var")
   df <- .add_plot_var(df, var = point_shape_var, var_name = ".point_shape_var", if_null = point_shape[1L])
   df <- .add_plot_var(df, var = point_color_var, var_name = ".point_color_var", if_null = df$.grouping_var, as_fct = TRUE)
   df <- .add_plot_var(df, var = point_size_var, var_name = ".point_size_var", if_null = point_size)
   df <- .add_plot_var(df, var = errorbar_color_var, var_name = ".errorbar_color_var", as_fct = TRUE)
+  if (length(unique(df$.grouping_var)) == 1L) {
+    dodge_width <- 1
+  }
 
-  # Row order
   if (length(unique(df$.ordering_var)) > 1L) {
     df$.label_var <- .fct_reorder(df$.label_var, df$.ordering_var)
     df$.y_var <- .fct_reorder(df$.y_var, df$.ordering_var)
-  }
-  if (length(unique(df$.grouping_var)) == 1L) {
-    dodge_width <- 1
   }
 
   # Meta-analysis variables
@@ -237,9 +239,33 @@ plot_forest <- function(
     }
   }
   label_digits <- label_digits %||% if (min(df$.x_min, na.rm = TRUE) < 0 || max(df$.x_max, na.rm = TRUE) > 40) 1L else 2L
-  label_digits <- paste0("%.", label_digits, "f")
-  label_format <- paste0(label_digits, " ", bracket_type[1L], label_digits, "-", label_digits, bracket_type[2L])
-  df$.estimate_label <- sprintf(label_format, df$.x, df$.x_min, df$.x_max)
+  df$.estimate_label <- .format_num_range(
+    estimate = df$.x,
+    lower = df$.x_min,
+    upper = df$.x_max,
+    digits = label_digits,
+    sep = "-",
+    bracket_lower = bracket_type[1L],
+    bracket_upper = bracket_type[2L]
+  )
+  if (!is.null(data_limits)) {
+    if (!length(data_limits) == 2L) {
+      data_limits <- c(data_limits, NA)
+    }
+    lower_limit <- data_limits[1L]
+    if (!is.na(lower_limit)) {
+      df$.x_min[!is.na(df$.x_min) & df$.x_min < lower_limit] <- lower_limit
+      df$.x[!is.na(df$.x) & df$.x < lower_limit] <- lower_limit
+    }
+    upper_limit <- data_limits[2L]
+    if (!is.na(upper_limit)) {
+      df$.x_max[!is.na(df$.x_max) & df$.x_max > upper_limit] <- upper_limit
+      df$.x[!is.na(df$.x) & df$.x > upper_limit] <- upper_limit
+    }
+  }
+  #label_digits <- paste0("%.", label_digits, "f")
+  #label_format <- paste0(label_digits, " ", bracket_type[1L], label_digits, "-", label_digits, bracket_type[2L])
+  #df$.estimate_label <- sprintf(label_format, df$.x, df$.x_min, df$.x_max)
   #estimate_label <- sprintf(label_format, df$.x, df$.x_min, df$.x_max)
   #y_vals <- .subset2(df, ".y_var")
   #y_levels <- levels(y_vals)
@@ -250,6 +276,12 @@ plot_forest <- function(
   #}
 
   # Plot
+  #y_levels <- tapply(df$.ordering_var, df$.y_var, function(x) mean(x, na.rm = TRUE))
+  #levels(df$.y_var) <- unique(c("Pooled", names(y_levels)[order(y_levels, decreasing = TRUE)]))
+  #y_levels <- tapply(df$.ordering_var, df$.label_var, function(x) mean(x, na.rm = TRUE))
+  #levels(df$.label_var) <- unique(c("Pooled", names(y_levels)[order(y_levels, decreasing = TRUE)]))
+  #levels(df$.y_var) <- unique(c("Pooled", levels(df$.y_var)))
+  #levels(df$.label_var) <- unique(c("Pooled", levels(df$.label_var)))
   blank <- ggplot2::element_blank()
   p <- ggplot2::ggplot(
     data = df,
@@ -290,7 +322,7 @@ plot_forest <- function(
       shape = no_legend,
       size = no_legend
     ) +
-    scale_axis(
+    continuous_axis(
       axis = "x",
       scale = x_axis_scale,
       title = x_axis_title,
@@ -383,7 +415,6 @@ GeomStripes <- ggplot2::ggproto(
     linewidth = NA
   ),
   draw_key = ggplot2::draw_key_blank,
-  #draw_key = ggplot2::draw_key_rect,
   setup_params = function(data, params) {
     if (is.null(params$direction)) {
       if (is.numeric(data$y) && !is.integer(utils::type.convert(data$y, as.is = TRUE))) {
@@ -450,19 +481,55 @@ GeomStripes <- ggplot2::ggproto(
   }
 )
 
-#' Format text for heterogeneity label
+#' Clip data limits for forest plot without influencing estimate and 95% CI labels
 #'
 #' @noRd
-format_heterogeneity_label <- function(i2, tau2, p, sep = "*','~", tau_digits = 4, prefix = "'Heterogeneity:'~") {
-  i2_label <- sprintf("italic(I)^2~`=`~'%.1f%%'", i2)
-  tau2_label <- sprintf("%s^2~`=`~'%s'", "\u03c4", format(tau2, fmt = paste0(".", tau_digits, "s")))
-  p_label <- as.character(findInterval(as.numeric(p), vec = c(0, 0.001, 0.01, 0.045, 0.06, 1), all.inside = TRUE, left.open = TRUE, rightmost.closed = TRUE, checkSorted = FALSE))
-  p_label[p_label == "1"] <- "italic(p)~`<`~0.001"
-  p_label[p_label == "2"] <- sprintf("italic(p)~`=`~'%.3f'", p[p_label == "2"])
-  p_label[p_label == "3"] <- sprintf("italic(p)~`=`~'%.2f'", p[p_label == "3"])
-  p_label[p_label == "4"] <- sprintf("italic(p)~`=`~'%.3f'", p[p_label == "4"])
-  p_label[p_label == "5"] <- sprintf("italic(p)~`=`~'%.2f'", pmin(p[p_label == "5"], 0.99))
-  #sprintf("'Heterogeneity:'~italic(I)^2~`=`~'%.1f%%,'~%s^2~`=`~'%s,'~%s", i2, "\u03c4", tau2_label, p_label)
-  if (is.null(sep)) return(c(prefix, i2_label, tau2_label, p_label))
-  paste0(prefix, i2_label, sep, tau2_label, sep, p_label)
+clip_forest_x_limits <- function(plot, min = NULL, max = NULL, idx_patchwork = 2) {
+  replace_plot_data <- function(.x, .min = NULL, .max = NULL) {
+    data <- .x@data
+    if (!is.null(.min)) {
+      data$.x_min[!is.na(data$.x_min) & data$.x_min < .min] <- .min
+      data$.x[!is.na(data$.x) & data$.x < .min] <- .min
+    }
+    if (!is.null(.max)) {
+      data$.x_max[!is.na(data$.x_max) & data$.x_max > .max] <- .max
+      data$.x[!is.na(data$.x) & data$.x > .max] <- .max
+    }
+    .x@data <- data
+    .x
+  }
+  if (inherits(plot, "patchwork")) {
+    idx_patchwork <- idx_patchwork %||% seq_along(plot)
+    for (i in idx_patchwork) {
+      plot[[i]] <- replace_plot_data(plot[[i]], .min = min, .max = max)
+    }
+    plot
+  } else if (inherits(plot, "ggplot")) {
+    replace_plot_data(plot, .min = min, .max = max)
+  } else {
+    lapply(plot, clip_forest_x_limits, min = min, max = max, idx_patchwork = idx_patchwork)
+  }
+}
+
+#' Reorder y axis levels of forest plot
+#'
+#' @noRd
+reorder_y_axis <- function(plot, ..., .y = c(".y_var", ".study_label"), .first = "Pooled") {
+  .relevel <- function(.x) {
+    for (i in intersect(.y, names(.x))) {
+      .x[[i]] <- factor(.subset2(.x, i), levels = unique(c(.first, as.character(.subset2(.x, i)))))
+    }
+    .x
+  }
+  if (inherits(plot, "patchwork")) {
+    for (i in seq_along(plot)) {
+      plot[[i]]@data <- .relevel(dplyr::arrange(plot[[i]]@data, ...))
+    }
+    plot
+  } else if (inherits(plot, "ggplot")) {
+    plot@data <- .relevel(dplyr::arrange(plot@data, ...))
+    plot
+  } else {
+    lapply(plot, reorder_y_axis, ..., .y = .y, .first = .first)
+  }
 }

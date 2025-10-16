@@ -19,7 +19,10 @@ library(dplyr)
 
 # Step 3: upload data to R
 core <- utils::read.csv(system.file("data-raw", "redcap_data.csv", package = "VIP"))
+idx <- startsWith(names(core), "nos")
+core <- core[!idx]
 labels <- utils::read.csv(system.file("data-raw", "redcap_labels.csv", package = "VIP"), check.names = FALSE)
+labels <- labels[!idx]
 
 # Rename variables --------------------------------------------------------
 
@@ -155,7 +158,11 @@ dict <- c(
   immunocomp_describe = "immunocomp_def",
   general_article_information_complete = "gen_info_status_complete",
   coadmin_vax_num = "coadmin_n_vax_approaches",
-  coadmin_vax_prime = "coadmin_vax_product"
+  coadmin_vax_prime = "coadmin_vax_product",
+
+  # ROB
+  domain_of_interest = "rob_domain",
+  rob_overall_text_domain = "rob"
 )
 
 # Check to make sure all names(dict) are included in original
@@ -182,7 +189,7 @@ if (!identical(length(unique(dict$new)), length(dict$new))) {
 # Rename columns
 names(core) <- dict$new
 
-remove(original, new, labels)
+remove(idx, original, new, labels)
 
 # Lookup tables for variable mapping --------------------------------------
 
@@ -357,6 +364,12 @@ coadmin_comparison_lookup <- c(
 
 # Exclude studies ---------------------------------------------------------
 
+core <- core |>
+  mutate(
+    id_covidence = trimws(id_covidence)
+    #id_covidence = ifelse(id_covidence == "#3972", "#40038", id_covidence)
+  )
+
 # Remove errors in redcap ID coding
 core <- core |>
   filter(
@@ -387,7 +400,7 @@ is_row_hidden <- function(sheet = NULL, file_path = system.file("data-raw", "Dat
   out
 }
 
-include <- readxl::read_excel(system.file("data-raw", "Data Extraction Tracker.xlsx", package = "VIP"), sheet = 1, skip = 2, .name_repair = "none")
+include <- suppressWarnings(readxl::read_excel(system.file("data-raw", "Data Extraction Tracker.xlsx", package = "VIP"), sheet = 1, skip = 2, .name_repair = "none"))
 include <- include[["Covidence #"]]
 exclude <- readxl::read_excel(system.file("data-raw", "Data Extraction Tracker.xlsx", package = "VIP"), sheet = 2, skip = 0, .name_repair = "none")
 exclude <- exclude[["Covidence #"]]
@@ -419,19 +432,19 @@ ids <- c(list(
   }) %>%
   c(split(ids$id_covidence, ids$exclude))
 
-# Concordance between Data Tracker and redcap data (core)
-#setdiff(ids$include, ids$include_core)
-#setdiff(ids$include_core, ids$include)
+# Discordance between Data Tracker and redcap data (core)
+setdiff(ids$include, ids$include_core)
+setdiff(ids$include_core, ids$include)
 
-#setdiff(ids$exclude, ids$exclude_core)
-#setdiff(ids$exclude_core, ids$exclude)
+setdiff(ids$exclude, ids$exclude_core)
+setdiff(ids$exclude_core, ids$exclude)
 
 # Discordance between Data Tracker and redcap data (core)
-#intersect(ids$include, ids$exclude_core)
-#intersect(ids$exclude, ids$include_core)
+intersect(ids$include, ids$exclude_core)
+intersect(ids$exclude, ids$include_core)
 
 # Discordance within Data Trackers
-#intersect(ids$include, ids$exclude)
+intersect(ids$include, ids$exclude)
 
 # Concordance for exclusion between core, include, and exclude
 id_exclude <- setdiff(intersect(ids$exclude_core, ids$exclude), ids$include)
@@ -503,6 +516,13 @@ core <- core |>
     across(contains("coadmin_outcome"), lookup_fn(coadmin_outcome_lookup)),
     reviewer = lookup_fn(reviewer_lookup)(reviewer),
     study_design = lookup_fn(design_lookup)(study_design),
+    study_design_other = case_when(
+      study_design_other %in% c("Self-controlled", "Self controlled study", "self-controlled case series", "Self-controlled study") ~ "Self-controlled case series",
+      study_design_other == "a test-negative case-control design was used to estimate vaccine effectiveness (VE), and a self-controlled case series of vaccine recipients was included to estimate vaccine-associated adverse events" ~ "Case-control (VE); Self-controlled case series (AE)",
+      study_design_other == "\"target trial emulation study\"" ~ "Target trial emulation study",
+      study_design_other == "" ~ NA_character_,
+      .default = study_design_other
+    ),
     study_design = ifelse(study_design == "Other" & !is.na(study_design_other), study_design_other, study_design),
     study_design_other = ifelse(study_design == study_design_other, NA_character_, study_design_other),
     perc_premature = gsub("%", "", perc_premature),
@@ -510,6 +530,25 @@ core <- core |>
       perc_premature == "Overall incidence: 64.2/1,000 births (95CI:62.0-66.4)" ~ "6.42",
       perc_premature == "-1" ~ NA_character_,
       .default = perc_premature
+    ),
+    date_start_year = case_when(
+      !is.na(date_start_year) ~ date_start_year,
+      is.na(date_start_year) & date_notes == "2023 Influenza Season" & date_end_year == 2023L ~ 2022L,
+      .default = date_start_year
+    ),
+    rob_domain = case_when(
+      rob_domain == "Vaccine Effectiveness" ~ "VE",
+      rob_domain == "Adverse Event of Special Interest" ~ "AESI",
+      rob_domain == "Adverse Event Not of Special Interest" ~ "AENSI",
+      rob_domain == "Co-administration" ~ "Co-admin",
+      rob_domain == "Epidemiology" ~ "Epi",
+      .default = rob_domain
+    ),
+    rob = case_when(
+      rob == "LOW (0)" ~ "Low",
+      rob == "MODERATE/SOME CONCERNS(1)" ~ "Moderate",
+      rob == "HIGH (2)" ~ "High",
+      .default = NA_character_
     ),
     population_other = ifelse(population_other_incl == 1 & !is.na(population_other), population_other, NA_character_),
     author = gsub(" [0-9]{4}", "", author),
@@ -528,10 +567,12 @@ if (!any(grepl("[A-z]", core$perc_premature), na.rm = TRUE)) {
 
 # Remove columns which contain exclusively missing values or identical values in all rows
 #names(core[!vapply(core, function(x) all(is.na(x)) || length(unique(x)) == 1L, logical(1), USE.NAMES = FALSE)])
-core <- core[!vapply(core, function(x) all(is.na(x)) || length(unique(x)) == 1L, logical(1), USE.NAMES = FALSE)]
+#cols_remove <- names(core)[vapply(core, function(x) all(is.na(x)) || length(unique(x)) == 1L, logical(1), USE.NAMES = FALSE)]
+cols_remove <- c(names(core)[vapply(core, function(x) all(is.na(x)), logical(1), USE.NAMES = FALSE)], "ae_palivizumab", "ae_clesroviamab", "gen_info_status_complete", "comments_complete", "rob_screen_complete", "overall_risk_of_bias_category_complete")
+core <- core[setdiff(names(core), cols_remove)]
 
 # Clean up workspace
-remove(ae_comparator_lookup, ae_em_stat_lookup, ae_outcome_lookup, coadmin_comparison_lookup, coadmin_outcome_lookup, design_lookup, lookup_fn, maternalvax_lookup, reviewer_lookup, vax_lookup, ve_comparator_lookup, ve_em_stat_lookup, ve_outcome_lookup)
+remove(cols_remove, ae_comparator_lookup, ae_em_stat_lookup, ae_outcome_lookup, coadmin_comparison_lookup, coadmin_outcome_lookup, design_lookup, lookup_fn, maternalvax_lookup, reviewer_lookup, vax_lookup, ve_comparator_lookup, ve_em_stat_lookup, ve_outcome_lookup)
 
 # Add comment columns -----------------------------------------------------
 

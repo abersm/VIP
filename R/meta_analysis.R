@@ -50,7 +50,7 @@ meta_analyze_2x2_counts_v2 <- function(
       label <- z
     }
   }
-  out <- meta::metabin(
+  meta::metabin(
     event.e = .subset2(df, tx1_outcome1),
     n.e = .subset2(df, tx1_total),
     event.c = .subset2(df, tx2_outcome1),
@@ -60,12 +60,6 @@ meta_analyze_2x2_counts_v2 <- function(
     sm = measure,
     method = method
   )
-  # I2: out$I2
-  # Tau squared: out$tau2
-  # P value for heterogeneity: ?out$pval.Q
-  # Study labels: out$studlab
-  # Rb: out$Rb
-  out
 }
 
 # VE meta-analysis --------------------------------------------------------
@@ -358,4 +352,54 @@ meta2df <- function(x, type = "plot_data", ...) {
     }
   }
   x
+}
+
+#' Extract info from meta object
+#'
+#' @noRd
+extract_meta_info <- function(x, ..., .inv_trans_log_or = exp, .add_labels = TRUE, .estimate_digits = 2) {
+  out <- vec2df(
+    n_studies = x$k,
+    estimate_type = x$sm,
+    p_het = x$pval.Q,
+    I2_estimate = x$I2*100,
+    I2_lower = x$lower.I2*100,
+    I2_upper = x$upper.I2*100,
+    tau2_estimate = x$tau2,
+    tau2_lower = x$lower.tau2,
+    tau2_upper = x$upper.tau2,
+    tau_method = x$method.tau,
+    random_effects_estimate = .inv_trans_log_or(x$TE.random),
+    random_effects_lower = .inv_trans_log_or(x$lower.random),
+    random_effects_upper = .inv_trans_log_or(x$upper.random),
+    random_effects_p = x$pval.random,
+    common_effects_estimate = .inv_trans_log_or(x$TE.common),
+    common_effects_lower = .inv_trans_log_or(x$lower.common),
+    common_effects_upper = .inv_trans_log_or(x$upper.common),
+    common_effects_p = x$pval.common,
+    fixed_effects_estimate = .inv_trans_log_or(x$TE.fixed),
+    fixed_effects_lower = .inv_trans_log_or(x$lower.fixed),
+    fixed_effects_upper = .inv_trans_log_or(x$upper.fixed),
+    fixed_effects_p = x$pval.fixed,
+    H_estimate = x$H,
+    H_lower = x$lower.H,
+    H_upper = x$upper.H,
+    Q = x$Q,
+    ...
+  )
+  if (!.add_labels) return(out)
+  new_var <- sprintf("%s_effects", c("random", "common", "fixed"))
+  var_suffix <- c("_estimate", "_lower", "_upper")
+  out_names <- names(out)
+  for (i in seq_len(3)) {
+    cols <- paste0(new_var[i], var_suffix)
+    if (anyNA(match(cols, out_names))) next
+    out[[new_var[i]]] <- .format_num_range(.subset2(out, cols[1L]), .subset2(out, cols[2L]), .subset2(out, cols[3L]), digits = .estimate_digits)
+  }
+  i2 <- .subset2(out, "I2_estimate")
+  p <- .subset2(out, "p_het")
+  out$het <- sprintf("I\u00B2 = %.1f%%, %s", round_up(i2, 1), .format_p_value(p))
+  out$het_label <- .format_heterogeneity_label(i2 = i2, p = p, as_string = TRUE)
+  out$het_label_with_tau <- .format_heterogeneity_label(i2 = i2, p = p, tau2 = .subset2(out, "tau2_estimate"), as_string = TRUE)
+  out
 }
