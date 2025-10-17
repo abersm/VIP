@@ -22,7 +22,7 @@ rownames(data) <- NULL
 data$article <- paste0('<a href="', utils::URLdecode(data$link), '" target="_blank">', data$article, "</a>")
 
 # Reorder columns
-data <- data[unique(c("article", "virus", "population", "journal", "pmid", "pmcid", "doi", setdiff(names(data), c("infant", "child", "adult", "elder", "preg", "immunocomp", "published_year", "covid", "rsv", "flu", "id_redcap", "id_covidence", "title", "link")), "link"))]
+data <- data[unique(c("article", "virus", "population", "journal", "rob", "pmid", "pmcid", "doi", setdiff(names(data), c("infant", "child", "adult", "elder", "preg", "immunocomp", "published_year", "covid", "rsv", "flu", "id_redcap", "id_covidence", "title", "link")), "link"))]
 
 # Edit levels
 pop_levels <- c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
@@ -239,14 +239,33 @@ data_options <- bslib::popover(
   )
 )
 
-#reset_btn <- shiny::tags$button(
-#  id = "data_reset",
-#  type = "button",
-#  class = "btn rounded-pill action-button",
-#  style = sprintf("width:35px;height:35px;text-align:center;padding:2px 0;font-size:20px;line-height:50%%;border-radius:30px;outline:none;background:%s;", secondary_color),
-#  shiny::tags$span(shiny::icon("arrow-rotate-left", verify_fa = FALSE)),
-#  style = "color:white;"
-#)
+# Risk of bias and study design options
+rob_study_design <- bslib::popover(
+  title = "Study details",
+  trigger = shiny::icon("list-check", style = sprintf("border-radius:1rem;padding:0.3rem;background:%s;color:white;width:min-content;", primary_color)),
+  shiny::checkboxGroupInput(
+    inputId = "rob",
+    label = shiny::tags$strong("Risk of bias", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+    choices = c("Low", "Moderate", "High"),
+    selected = c("Low", "Moderate", "High")
+  ),
+  shiny::checkboxGroupInput(
+    inputId = "study_design",
+    label = shiny::tags$strong("Study design", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+    choices = c("RCT", "Case-control", "Cohort", "Observational - other"),
+    selected = c("RCT", "Case-control", "Cohort", "Observational - other")
+  )
+)
+
+# Reset data button
+reset_btn <- shiny::tags$button(
+  id = "data_reset",
+  type = "button",
+  class = "btn rounded-pill action-button",
+  style = sprintf("width:35px;height:35px;text-align:center;padding:2px 0;font-size:20px;line-height:50%%;border-radius:30px;outline:none;background:%s;", secondary_color),
+  shiny::tags$span(shiny::icon("arrow-rotate-left", verify_fa = FALSE)),
+  style = "color:white;"
+)
 
 # JS code
 js_popover <- shiny::tags$head(
@@ -338,13 +357,13 @@ ui <- function(request) {
               #plotly::plotlyOutput(outputId = "plot_studies", width = "100%", height = "400px")
               # Width 240 (smallest)-340 (ideal)
               #shiny::plotOutput(outputId = "plot_studies", width = "100%", height = "400px", click = "plot_studies_click")
+              shiny::fluidRow(
+                shiny::column(rob_study_design, width = 6, align = "left"),
+                shiny::column(reset_btn, width = 6, align = "right")
+              ),
               shiny::plotOutput(outputId = "plot_studies", width = "340px", height = "400px", click = "plot_studies_click")
             ),
             bslib::card(
-              #shiny::fluidRow(
-              #  shiny::column(data_options, width = 6, align = "left"),
-              #  shiny::column(reset_btn, width = 6, align = "right")
-              #),
               data_options,
               DT::DTOutput("table_studies")
             )
@@ -359,6 +378,17 @@ ui <- function(request) {
 # Server ------------------------------------------------------------------
 server <- function(input, output, session) {
   studies <- shiny::reactiveVal(data)
+  shiny::observeEvent(input$rob, {
+    n_rob <- length(input$rob)
+    if (n_rob < 3L && n_rob != 0L) {
+      studies(data[data$rob %in% input$rob, ])
+    } else {
+      studies(data)
+    }
+  })
+  shiny::observeEvent(input$reset_data, {
+    studies(data)
+  })
   studies_plot <- shiny::reactive({
     tryElse(
       VIP::plot_crosstable2(
@@ -424,6 +454,7 @@ server <- function(input, output, session) {
     # )
     # if (!is.null(tmp)) browser()
     tmp <- tmp[unique(c("article", names(tmp)))]
+    names(tmp)[names(tmp) == "rob"] <- "Risk of bias"
     out <- DT::datatable(
       tmp,
       escape = FALSE,

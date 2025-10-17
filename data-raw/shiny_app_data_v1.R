@@ -5,7 +5,7 @@ df_shiny <- VIP::study_info |>
     id_redcap, id_covidence, article,
     virus, covid, rsv, flu,
     population, preg, infant, child, adult, elder, immunocomp,
-    rob,
+    rob, study_design,
     published_year, journal, pmid, pmcid, doi, link, title
   )
 
