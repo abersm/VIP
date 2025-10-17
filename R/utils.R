@@ -149,7 +149,7 @@ round_up <- function(x, digits = 2) {
 #' Create heterogeneity label from meta object
 #'
 #' @noRd
-heterogeneity_label <- function(x, sep = "*','~", tau_digits = 4, prefix = "'Heterogeneity:'~") {
+heterogeneity_label <- function(x, sep = "*','~", tau_digits = 4, title = "'Heterogeneity:'~") {
   x <- extract_meta_info(x)
-  .format_heterogeneity_label(x$I2_estimate, x$tau2_estimate, x$p_het, sep = sep, tau_digits = tau_digits, prefix = prefix)
+  .format_heterogeneity_label(x$I2_estimate, x$tau2_estimate, x$p_het, sep = sep, tau_digits = tau_digits, title = title)
 }

@@ -277,7 +277,7 @@ vip_shiny <- function(
       ))
       p$labels$x <- ""
       p$labels$y <- y_title
-      plot_interactive(p, show_legend = input$stats_show_legend)
+      plot_interactive(p, .show_legend = input$stats_show_legend)
     })
   }
   shiny::shinyApp(ui, server)
