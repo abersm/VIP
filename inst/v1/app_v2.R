@@ -198,6 +198,25 @@ slider_style <- sprintf(".irs--shiny .irs-handle.state_hover, .irs--shiny .irs-h
 # Popover style
 css_popover <- sprintf(".popover{border-color: %s;}.popover-header{background-color: %s;color:%s;}.popover .btn-close{--bs-btn-close-opacity:1;}", primary_color, primary_color, "white")
 
+# Accordion style
+accordion_btn_border_color <- "white"
+accordion_text_color <- "white"
+#accordion_btn_fill_color <- .clr_alpha_filter(primary_color, 0.1)
+accordion_btn_fill_color <- "#E9F0F3"
+accordion_style <- sprintf("
+  --bs-accordion-color:%s;
+  --bs-accordion-border-color:%s;
+  --bs-accordion-active-bg:%s;
+  --bs-accordion-active-color:%s;
+  --bs-accordion-btn-bg:%s;
+  --bs-accordion-btn-focus-box-shadow:none;",
+                           primary_color,
+                           accordion_btn_border_color,
+                           primary_color,
+                           accordion_text_color,
+                           accordion_btn_fill_color
+)
+
 # All style elements
 css_style <- paste0(
   css_popover,
@@ -220,43 +239,6 @@ landing_page_text <- shiny::tagList(
   )
 )
 
-# Exported data options (population, virus)
-data_options <- bslib::popover(
-  title = "Select data",
-  trigger = shiny::icon("sliders", style = sprintf("border-radius:1rem;padding:0.3rem;background:%s;color:white;width:min-content;", primary_color)),
-  shiny::checkboxGroupInput(
-    inputId = "studies_virus",
-    label = shiny::tags$strong("Virus", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-    choices = c("COVID", "RSV", "Influenza"),
-    selected = c("COVID", "RSV", "Influenza")
-  ),
-  shiny::checkboxGroupInput(
-    inputId = "studies_population",
-    label = shiny::tags$strong("Population", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-    choiceNames = c("Pregnancy", "Pediatrics", "Adults", "Immunocompromised"),
-    choiceValues = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."),
-    selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
-  )
-)
-
-# Risk of bias and study design options
-rob_study_design <- bslib::popover(
-  title = "Study details",
-  trigger = shiny::icon("list-check", style = sprintf("border-radius:1rem;padding:0.3rem;background:%s;color:white;width:min-content;", primary_color)),
-  shiny::checkboxGroupInput(
-    inputId = "rob",
-    label = shiny::tags$strong("Risk of bias", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-    choices = c("Low", "Moderate", "High"),
-    selected = c("Low", "Moderate", "High")
-  ),
-  shiny::checkboxGroupInput(
-    inputId = "study_design",
-    label = shiny::tags$strong("Study design", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-    choices = c("RCT", "Case-control", "Cohort", "Observational - other"),
-    selected = c("RCT", "Case-control", "Cohort", "Observational - other")
-  )
-)
-
 # Reset data button
 reset_btn <- shiny::tags$button(
   id = "data_reset",
@@ -266,6 +248,26 @@ reset_btn <- shiny::tags$button(
   style = sprintf("width:30px;height:30px;text-align:center;padding:2px 0;font-size:18px;line-height:50%%;border-radius:30px;outline:none;background:%s;", secondary_color),
   shiny::tags$span(shiny::icon("arrow-rotate-left", verify_fa = FALSE)),
   style = "color:white;"
+)
+
+virus_icon <- shiny::tags$svg(
+  xmlns = "http://www.w3.org/2000/svg",
+  width = "16",
+  height = "16",
+  fill = "currentColor",
+  class = "bi bi-virus2",
+  viewbox = "0 0 16 16",
+  shiny::tags$path(d = "M8 0a1 1 0 0 0-1 1v1.143c0 .557-.407 1.025-.921 1.24-.514.214-1.12.162-1.513-.231l-.809-.809a1 1 0 1 0-1.414 1.414l.809.809c.394.394.445.999.23 1.513C3.169 6.593 2.7 7 2.144 7H1a1 1 0 0 0 0 2h1.143c.557 0 1.025.407 1.24.921.214.514.163 1.12-.231 1.513l-.809.809a1 1 0 0 0 1.414 1.414l.809-.809c.394-.394.999-.445 1.513-.23.514.214.921.682.921 1.24V15a1 1 0 1 0 2 0v-1.143c0-.557.407-1.025.921-1.24.514-.214 1.12-.162 1.513.231l.809.809a1 1 0 0 0 1.414-1.414l-.809-.809c-.393-.394-.445-.999-.23-1.513.214-.514.682-.921 1.24-.921H15a1 1 0 1 0 0-2h-1.143c-.557 0-1.025-.407-1.24-.921-.214-.514-.162-1.12.231-1.513l.809-.809a1 1 0 0 0-1.414-1.414l-.809.809c-.394.393-.999.445-1.513.23-.514-.214-.92-.682-.92-1.24V1a1 1 0 0 0-1-1Zm2 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 7a1 1 0 1 1-2 0 1 1 0 0 1 2 0m1 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2m4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0")
+)
+
+population_icon <- shiny::tags$svg(
+  xmlns = "http://www.w3.org/2000/svg",
+  width = "16",
+  height = "16",
+  fill = "currentColor",
+  class = "bi bi-people-fill",
+  viewbox = "0 0 16 16",
+  shiny::tags$path(d = "M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5")
 )
 
 # JS code
@@ -346,11 +348,55 @@ ui <- function(request) {
       # Overview tab ------------------------------------------------------------
       shiny::tabPanel(
         title = "Studies",
-        #abers::debug_editorUI(),
         icon = shiny::icon("book", verfiy_fa = FALSE),
         style = tab_style,
-        bslib::card(
-          #style = "resize:horizontal;",
+        bslib::layout_sidebar(
+          sidebar = bslib::sidebar(
+            #width = "30%",
+            open = FALSE,
+            bslib::accordion(
+              open = TRUE,
+              style = accordion_style,
+              bslib::accordion_panel(
+                title = "Virus",
+                icon = virus_icon,
+                shiny::checkboxGroupInput(
+                  inputId = "studies_virus",
+                  label = shiny::tags$strong("Virus", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+                  choices = c("COVID", "RSV", "Influenza"),
+                  selected = c("COVID", "RSV", "Influenza")
+                )
+              ),
+              bslib::accordion_panel(
+                title = "Population",
+                icon = population_icon,
+                shiny::checkboxGroupInput(
+                  inputId = "studies_population",
+                  label = shiny::tags$strong("Population", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+                  choiceNames = c("Pregnancy", "Pediatrics", "Adults", "Immunocompromised"),
+                  choiceValues = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."),
+                  selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
+                )
+              ),
+              bslib::accordion_panel(
+                title = "Study details",
+                icon = shiny::icon("sliders", verify_fa = FALSE),
+                shiny::checkboxGroupInput(
+                  inputId = "rob",
+                  label = shiny::tags$strong("Risk of bias", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+                  choices = c("Low", "Moderate", "High"),
+                  selected = c("Low", "Moderate", "High")
+                ),
+                shiny::checkboxGroupInput(
+                  inputId = "study_design",
+                  label = shiny::tags$strong("Study design", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+                  choices = c("RCT", "Case-control", "Cohort", "Observational - other"),
+                  selected = c("RCT", "Case-control", "Cohort", "Observational - other")
+                )
+              )
+            )
+          ),
+
           bslib::layout_columns(
             bslib::card(
               #style = "resize:vertical;",
@@ -362,18 +408,15 @@ ui <- function(request) {
                 #shiny::column(rob_study_design, width = 6, align = "left"),
                 #shiny::column(reset_btn, width = 6, align = "right")
                 #shiny::column(bslib::tooltip(rob_study_design, "Select study type"), bslib::tooltip(data_options, "Population/virus details"), width = 6, align = "left"),
-                shiny::column(rob_study_design, data_options, width = 6, align = "left"),
-                shiny::column(bslib::tooltip(reset_btn, "Reset data"), width = 6, align = "right")
+                #shiny::column(rob_study_design, data_options, width = 6, align = "left"),
+                shiny::column(bslib::tooltip(reset_btn, "Reset data"), width = 12, align = "right")
               ),
               shiny::plotOutput(outputId = "plot_studies", width = "340px", height = "400px", click = "plot_studies_click")
             ),
-            bslib::card(
-              #data_options,
-              DT::DTOutput("table_studies")
-            )
-          )
-        ),
-        shiny::tags$h6("Note: data are subject to change", style = sprintf("color:%s;", secondary_color))
+            DT::DTOutput("table_studies")
+          ),
+          shiny::tags$h6("Note: data are subject to change", style = sprintf("color:%s;", secondary_color))
+        )
       )
     )
   )
