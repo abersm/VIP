@@ -58,8 +58,7 @@ study_info <- study_info |>
 
 # Add study metadata
 table_s4 <- suppressWarnings(readxl::read_excel(system.file("data-raw", "Table S4 Characteristics of included studies.xlsx", package = "VIP")))
-table_s4 <- table_s4[c("redcap ID", "covidence ID", "Study design", "Country/region", "Setting")]
-names(table_s4) <- c("id_redcap", "id_covidence", "study_design", "country", "study_setting")
+table_s4 <- table_s4[c("id_redcap", "id_covidence", "study_design", "country", "study_setting")]
 
 # Studies present in VIP::core but missing from table_s4
 anti_join(VIP::core, select(table_s4, -c(study_design, study_setting)), by = c("id_redcap", "id_covidence"))
@@ -74,11 +73,19 @@ table_s4 <- table_s4 |> filter(id_redcap %in% VIP::core$id_redcap)
 
 # redcap IDs should match those in study_info
 if (!setequal(table_s4$id_redcap, study_info$id_redcap)) {
+  z <- setdiff(table_s4$id_redcap, study_info$id_redcap)
+  if (length(z) == 0L) {
+    z <- setdiff(study_info$id_redcap, table_s4$id_redcap)
+  }
   stop("'study_info' and 'table_s4' do not share the same redcap IDs")
 }
 
 # covidence IDs should match those in study_info
 if (!setequal(table_s4$id_covidence, study_info$id_covidence)) {
+  z <- setdiff(table_s4$id_covidence, study_info$id_covidence)
+  if (length(z) == 0L) {
+    z <- setdiff(study_info$id_covidence, table_s4$id_covidence)
+  }
   stop("'study_info' and 'table_s4' do not share the same covidence IDs")
 }
 

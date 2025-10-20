@@ -19,8 +19,7 @@ library(dplyr)
 
 # Step 3: upload data to R
 core <- utils::read.csv(system.file("data-raw", "redcap_data.csv", package = "VIP"))
-# Remove duplicate Williams entries
-core <- core |> filter(record_id != 629)
+#core <- core |> filter(record_id != 14)
 
 idx <- startsWith(names(core), "nos")
 core <- core[!idx]

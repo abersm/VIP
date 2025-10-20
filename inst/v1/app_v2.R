@@ -1,13 +1,28 @@
-devtools::install_github("abersm/VIP")
+#devtools::install_github("abersm/VIP")
 
 # Functions ---------------------------------------------------------------
 
 tryElse <- function(x, otherwise = NULL) tryCatch(suppressWarnings(x), error = function(e) otherwise)
 
-get_position <- function(x, levels = c("COVID", "RSV", "Influenza")) {
-  delta <- abs(seq_along(levels) - x)
-  levels[which.min(delta)]
+get_click_position <- function(x) {
+  if (is.null(x)) return(NULL)
+  domain <- x$domain
+  x_position <- findInterval(x$x, seq.int(domain$left, domain$right, by = 1L), rightmost.closed = FALSE, left.open = TRUE)
+  y_position <- findInterval(x$y, seq.int(domain$bottom, domain$top, by = 1L), rightmost.closed = FALSE, left.open = TRUE)
+  x_levels <- unlist(domain$discrete_limits$x, use.names = FALSE)
+  x_levels <- c(x_levels[1L], x_levels, x_levels[length(x_levels)])
+  y_levels <- unlist(domain$discrete_limits$y, use.names = FALSE)
+  y_levels <- c(y_levels[1L], y_levels, y_levels[length(y_levels)])
+  list(
+    x = x_levels[x_position + 1L],
+    y = y_levels[y_position + 1L]
+  )
 }
+
+#get_position <- function(x, levels = c("COVID", "RSV", "Influenza")) {
+#  delta <- abs(seq_along(levels) - x)
+#  levels[which.min(delta)]
+#}
 
 # Data --------------------------------------------------------------------
 
@@ -32,7 +47,8 @@ data$population[data$population == "Pregnant"] <- "Pregnancy"
 data$population[data$population == "Immunocomp"] <- "Immunocomp."
 data$population <- factor(data$population, levels = rev(pop_levels))
 
-# Style --------------------------------------------------------------------
+# CSS ---------------------------------------------------------------------
+
 primary_color <- "#246A87"
 secondary_color <- "#A63B86"
 slider_color <- primary_color
@@ -40,19 +56,20 @@ slider_color <- primary_color
 #accordion_text_color <- secondary_color
 #switch_color <- primary_color
 pills <- FALSE
-
 tab_style <- paste0("p-3 border ", if (pills) "rounded ", "border-top-0 rounded-bottom")
 
-# Data table export file button style
-#div.dt-buttons{margin-top:10px;gap:0.5rem;}
+# Data table export button style
+## Default state
 dt_btn_bg_color <- "white"
 dt_btn_text_color <- secondary_color
 dt_btn_border_color <- dt_btn_text_color
 
+## Hover
 dt_btn_bg_color_hover <- dt_btn_text_color
 dt_btn_text_color_hover <- dt_btn_bg_color
 dt_btn_border_color_hover <- dt_btn_text_color
 
+## Click
 #dt_btn_bg_color_active <- VIP:::.clr_alpha_filter(dt_btn_text_color, 0.5)
 dt_btn_bg_color_active <- "#D29DC2"
 dt_btn_text_color_active <- dt_btn_bg_color
@@ -130,40 +147,6 @@ dt_btn_style <- sprintf("
                         dt_btn_bg_color_active, dt_btn_text_color_active, dt_btn_border_color_active, dt_btn_text_color_active
 )
 
-# Header
-cidrap_logo <- shiny::tags$img(src = "cidrap_logo.svg", height = "75px", style = "padding-top:10px;padding-bottom:10px;")
-#vip_logo <- shiny::tags$img(src = "vip_logo3.svg", height = "130px", style = "padding-top:10px;padding-bottom:10px;")
-vip_text <- shiny::tags$h1("Vaccine Integrity Project", style = sprintf("color:%s;vertical-align:middle;padding-top:10px;padding-bottom:10px;font-size:36px;", secondary_color))
-#vip_text <- shiny::tags$text("Vaccine Integrity Project", style = sprintf("color:%s;vertical-align:middle;padding-top:10px;padding-bottom:10px;font-size:24px;", secondary_color))
-#vip_logo <- shiny::tags$img(src = "vip_logo.svg", height = "100px", style = "padding-top:10px;padding-bottom:10px;")
-vip_logo <- shiny::tags$img(src = "vip_logo_white_bg.svg", height = "100px", style = "padding-top:10px;padding-bottom:10px;")
-#vip_logo <- shiny::tags$img(src = "vip_logo.png", height = "110px", style = "padding-top:10px;padding-bottom:10px;padding-right:10px;")
-## CIDRAP left, VIP right, VIP text center
-#header_color <- "#E5ECF3"
-header_color <- "#EDF2F7"
-#header_color <- "#FFFFFF"
-#header_border_color <- primary_color
-header_border_color <- "#00498F"
-header <- shiny::headerPanel(
-  shiny::fluidRow(
-    #shiny::column(cidrap_logo, width = 2), shiny::column(vip_text, width = 8, align = "center"), shiny::column(vip_logo, width = 2, align = "right"),
-    shiny::column(cidrap_logo, width = 6), shiny::column(vip_logo, width = 6, align = "right"),
-    style = sprintf("background:%s;border:solid 2px %s;padding:2px;align-items:center;border-radius:10px;margin:0.1px;", header_color, header_border_color)
-  ),
-  windowTitle = "Vaccine Integrity Project"
-)
-## CIDRAP left, VIP right
-if (FALSE) {
-  header <- shiny::headerPanel(
-    shiny::fluidRow(
-      shiny::column(cidrap_logo, width = 6),
-      shiny::column(shiny::tags$span(vip_text, vip_logo, style = "vertical-align:middle;display:inline-block;"), align = "right", width = 6),
-      style = "background:#ECF5F8;border:solid #246A87;padding:2px;"
-    ),
-    windowTitle = "Vaccine Integrity Project"
-  )
-}
-
 # Nav tabs
 #nav_active <- sprintf(".nav-tabs{--bs-nav-tabs-link-active-bg:%s;--bs-nav-tabs-link-active-border-color:%s;--bs-nav-tabs-link-active-color:%s;--bs-nav-link-color:%s;}", tab_bg_color, tab_border_color)
 
@@ -219,6 +202,7 @@ accordion_style <- sprintf("
 
 # All style elements
 css_style <- paste0(
+  "#plot_studies:hover{cursor:pointer;}",
   css_popover,
   dt_btn_style,
   nav_style,
@@ -226,49 +210,7 @@ css_style <- paste0(
 )
 css_style <- shiny::tags$head(shiny::tags$style(shiny::HTML(css_style)))
 
-# Landing page
-landing_page_text <- shiny::tagList(
-  shiny::tags$h2(shiny::tags$strong("About the Vaccine Integrity Project:", style = sprintf("color:%s;", primary_color))),
-  shiny::tags$p("CIDRAP's Vaccine Integrity Project is an initiative dedicated to safeguarding vaccine use in the U.S. so that it remains grounded in the best available science, free from external influence, and focused on optimizing protection of individuals, families, and communities against vaccine-preventable diseases."),
-  shiny::tags$p("The Vaccine Integrity Project issued its final report from the planning phase summarizing its findings from the exploratory phase, focused on what is needed to ensure the integrity of the U.S. vaccine system, including vaccine evaluations and clinical guidelines based on rigorous and timely reviews."),
-  shiny::tags$p(
-    "The Vaccine Integrity Project is focusing on actions that stemmed from its earlier work:",
-    shiny::tags$li(shiny::tags$strong("Implementing a rapid response accountability effort."), " In response to misleading and inaccurate claims, the Vaccine Integrity Project aims to launch a rapid response communications initiative to monitor and address vaccine- and public health-related misinformation originating from official, federal sources in real time."),
-    shiny::tags$li(shiny::tags$strong("Developing and disseminating the evidence base for immunization recommendations and clinical consideration."), " Engaging with healthcare providers, the public health community, and medical societies, CIDRAP is leading a comprehensive review of scientific evidence to inform immunization recommendations so that clinicians have evidence-backed guidance on the key immunizations for all ages on COVID, RSV, and influenza heading into respiratory virus season."),
-    shiny::tags$li(shiny::tags$strong("Fostering continued collaboration and visibility."), " This work is far from over, and no single organization can operate in isolation. The scale and complexity of the challenges ahead demand ongoing collaboration and coordinated action across the ecosystem. Regular convening will support better alignment, reduce duplication, and help prioritize and address emerging issues in real time.")
-  )
-)
-
-# Reset data button
-reset_btn <- shiny::tags$button(
-  id = "data_reset",
-  type = "button",
-  class = "btn rounded-pill action-button",
-  #style = sprintf("width:35px;height:35px;text-align:center;padding:2px 0;font-size:20px;line-height:50%%;border-radius:30px;outline:none;background:%s;", secondary_color),
-  style = sprintf("width:30px;height:30px;text-align:center;padding:2px 0;font-size:18px;line-height:50%%;border-radius:30px;outline:none;background:%s;", secondary_color),
-  shiny::tags$span(shiny::icon("arrow-rotate-left", verify_fa = FALSE)),
-  style = "color:white;"
-)
-
-virus_icon <- shiny::tags$svg(
-  xmlns = "http://www.w3.org/2000/svg",
-  width = "16",
-  height = "16",
-  fill = "currentColor",
-  class = "bi bi-virus2",
-  viewbox = "0 0 16 16",
-  shiny::tags$path(d = "M8 0a1 1 0 0 0-1 1v1.143c0 .557-.407 1.025-.921 1.24-.514.214-1.12.162-1.513-.231l-.809-.809a1 1 0 1 0-1.414 1.414l.809.809c.394.394.445.999.23 1.513C3.169 6.593 2.7 7 2.144 7H1a1 1 0 0 0 0 2h1.143c.557 0 1.025.407 1.24.921.214.514.163 1.12-.231 1.513l-.809.809a1 1 0 0 0 1.414 1.414l.809-.809c.394-.394.999-.445 1.513-.23.514.214.921.682.921 1.24V15a1 1 0 1 0 2 0v-1.143c0-.557.407-1.025.921-1.24.514-.214 1.12-.162 1.513.231l.809.809a1 1 0 0 0 1.414-1.414l-.809-.809c-.393-.394-.445-.999-.23-1.513.214-.514.682-.921 1.24-.921H15a1 1 0 1 0 0-2h-1.143c-.557 0-1.025-.407-1.24-.921-.214-.514-.162-1.12.231-1.513l.809-.809a1 1 0 0 0-1.414-1.414l-.809.809c-.394.393-.999.445-1.513.23-.514-.214-.92-.682-.92-1.24V1a1 1 0 0 0-1-1Zm2 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 7a1 1 0 1 1-2 0 1 1 0 0 1 2 0m1 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2m4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0")
-)
-
-population_icon <- shiny::tags$svg(
-  xmlns = "http://www.w3.org/2000/svg",
-  width = "16",
-  height = "16",
-  fill = "currentColor",
-  class = "bi bi-people-fill",
-  viewbox = "0 0 16 16",
-  shiny::tags$path(d = "M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5")
-)
+# JS ----------------------------------------------------------------------
 
 # JS code
 js_popover <- shiny::tags$head(
@@ -289,8 +231,177 @@ js_popover <- shiny::tags$head(
   )
 )
 
+# Icons -------------------------------------------------------------------
+
+# Virus
+virus_icon <- shiny::tags$svg(
+  xmlns = "http://www.w3.org/2000/svg",
+  width = "16",
+  height = "16",
+  #fill = "currentColor",
+  fill = primary_color,
+  #class = "bi bi-virus2",
+  viewbox = "0 0 16 16",
+  shiny::tags$path(d = "M8 0a1 1 0 0 0-1 1v1.143c0 .557-.407 1.025-.921 1.24-.514.214-1.12.162-1.513-.231l-.809-.809a1 1 0 1 0-1.414 1.414l.809.809c.394.394.445.999.23 1.513C3.169 6.593 2.7 7 2.144 7H1a1 1 0 0 0 0 2h1.143c.557 0 1.025.407 1.24.921.214.514.163 1.12-.231 1.513l-.809.809a1 1 0 0 0 1.414 1.414l.809-.809c.394-.394.999-.445 1.513-.23.514.214.921.682.921 1.24V15a1 1 0 1 0 2 0v-1.143c0-.557.407-1.025.921-1.24.514-.214 1.12-.162 1.513.231l.809.809a1 1 0 0 0 1.414-1.414l-.809-.809c-.393-.394-.445-.999-.23-1.513.214-.514.682-.921 1.24-.921H15a1 1 0 1 0 0-2h-1.143c-.557 0-1.025-.407-1.24-.921-.214-.514-.162-1.12.231-1.513l.809-.809a1 1 0 0 0-1.414-1.414l-.809.809c-.394.393-.999.445-1.513.23-.514-.214-.92-.682-.92-1.24V1a1 1 0 0 0-1-1Zm2 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 7a1 1 0 1 1-2 0 1 1 0 0 1 2 0m1 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2m4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0")
+)
+
+# Population
+population_icon <- shiny::tags$svg(
+  xmlns = "http://www.w3.org/2000/svg",
+  width = "16",
+  height = "16",
+  #fill = "currentColor",
+  fill = primary_color,
+  #class = "bi bi-people-fill",
+  viewbox = "0 0 16 16",
+  shiny::tags$path(d = "M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5")
+)
+
+# Study design icon
+## Source: svgrepo.com
+
+# Risk of bias icon
+## Source: svgrepo.com
+
+# Inputs ------------------------------------------------------------------
+
+# Reset data button
+reset_btn <- shiny::tags$button(
+  id = "data_reset",
+  type = "button",
+  class = "btn rounded-pill action-button",
+  style = sprintf("width:25.5px;height:25.5px;text-align:center;padding:2px 0;font-size:16px;line-height:50%%;border-radius:30px;outline:none;background:%s;", secondary_color),
+  shiny::tags$span(shiny::icon("arrow-rotate-left", verify_fa = FALSE)),
+  style = "color:white;"
+)
+reset_btn <- add_tooltip(reset_btn, "Reset data")
+
+# Popover options
+# Exported data options (population, virus)
+if (FALSE) {
+  data_settings <- bslib::popover(
+    title = "Select data",
+    trigger = shiny::icon("sliders", style = sprintf("border-radius:1rem;padding:0.3rem;background:%s;color:white;width:min-content;", primary_color)),
+    placement = "right",
+    shiny::checkboxGroupInput(
+      inputId = "studies_virus",
+      #label = shiny::tags$strong("Virus", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+      label = shiny::tags$span(virus_icon, shiny::tags$strong("Virus", style = sprintf("font-size:1.05rem;color:%s;", primary_color))),
+      choices = c("COVID", "RSV", "Influenza"),
+      selected = c("COVID", "RSV", "Influenza")
+    ),
+    shiny::checkboxGroupInput(
+      inputId = "studies_population",
+      label = shiny::tags$span(population_icon, shiny::tags$strong("Population", style = sprintf("font-size:1.05rem;color:%s;", primary_color))),
+      choiceNames = c("Pregnancy", "Pediatrics", "Adults", "Immunocompromised"),
+      choiceValues = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."),
+      selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
+    ),
+    shiny::checkboxGroupInput(
+      inputId = "rob",
+      label = shiny::tags$strong("Risk of bias", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+      choices = c("Low", "Moderate", "High"),
+      selected = c("Low", "Moderate", "High")
+    ),
+    shiny::checkboxGroupInput(
+      inputId = "study_design",
+      label = shiny::tags$strong("Study design", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+      choices = c("RCT", "Case-control", "Cohort", "Observational - other"),
+      selected = c("RCT", "Case-control", "Cohort", "Observational - other")
+    )
+  )
+}
+
+data_options <- bslib::popover(
+  title = "Select virus/population",
+  trigger = shiny::icon("sliders", style = sprintf("border-radius:1rem;padding:0.3rem;background:%s;color:white;width:min-content;", primary_color)),
+  shiny::checkboxGroupInput(
+    inputId = "studies_virus",
+    #label = shiny::tags$strong("Virus", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+    label = shiny::tags$span(virus_icon, shiny::tags$strong("Virus", style = sprintf("font-size:1.05rem;color:%s;", primary_color))),
+    choices = c("COVID", "RSV", "Influenza"),
+    selected = c("COVID", "RSV", "Influenza")
+  ),
+  shiny::checkboxGroupInput(
+    inputId = "studies_population",
+    label = shiny::tags$strong("Population", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+    choiceNames = c("Pregnancy", "Pediatrics", "Adults", "Immunocompromised"),
+    choiceValues = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."),
+    selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
+  )
+)
+data_options <- add_tooltip(data_options, "Select virus/population")
+
+# Risk of bias and study design options
+rob_study_design <- bslib::popover(
+  title = "Study characteristics",
+  trigger = shiny::icon("list-check", style = sprintf("border-radius:1rem;padding:0.3rem;background:%s;color:white;width:min-content;", primary_color)),
+  shiny::checkboxGroupInput(
+    inputId = "rob",
+    label = shiny::tags$strong("Risk of bias", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+    choices = c("Low", "Moderate", "High"),
+    selected = c("Low", "Moderate", "High")
+  ),
+  shiny::checkboxGroupInput(
+    inputId = "study_design",
+    label = shiny::tags$strong("Study design", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+    choices = c("RCT", "Case-control", "Cohort", "Observational - other"),
+    selected = c("RCT", "Case-control", "Cohort", "Observational - other")
+  )
+)
+rob_study_design <- add_tooltip(rob_study_design, "Select study characteristics")
+
 # UI ----------------------------------------------------------------------
 
+# Header
+cidrap_logo <- shiny::tags$img(src = "cidrap_logo.svg", height = "75px", style = "padding-top:10px;padding-bottom:10px;")
+#vip_logo <- shiny::tags$img(src = "vip_logo3.svg", height = "130px", style = "padding-top:10px;padding-bottom:10px;")
+vip_text <- shiny::tags$h1("Vaccine Integrity Project", style = sprintf("color:%s;vertical-align:middle;padding-top:10px;padding-bottom:10px;font-size:36px;", secondary_color))
+#vip_text <- shiny::tags$text("Vaccine Integrity Project", style = sprintf("color:%s;vertical-align:middle;padding-top:10px;padding-bottom:10px;font-size:24px;", secondary_color))
+#vip_logo <- shiny::tags$img(src = "vip_logo.svg", height = "100px", style = "padding-top:10px;padding-bottom:10px;")
+vip_logo <- shiny::tags$img(src = "vip_logo_white_bg.svg", height = "100px", style = "padding-top:10px;padding-bottom:10px;")
+#vip_logo <- shiny::tags$img(src = "vip_logo.png", height = "110px", style = "padding-top:10px;padding-bottom:10px;padding-right:10px;")
+## CIDRAP left, VIP right, VIP text center
+#header_color <- "#E5ECF3"
+header_color <- "#EDF2F7"
+#header_color <- "#FFFFFF"
+#header_border_color <- primary_color
+header_border_color <- "#00498F"
+header <- shiny::headerPanel(
+  shiny::fluidRow(
+    #shiny::column(cidrap_logo, width = 2), shiny::column(vip_text, width = 8, align = "center"), shiny::column(vip_logo, width = 2, align = "right"),
+    shiny::column(cidrap_logo, width = 6), shiny::column(vip_logo, width = 6, align = "right"),
+    style = sprintf("background:%s;border:solid 2px %s;padding:2px;align-items:center;border-radius:10px;margin:0.1px;", header_color, header_border_color)
+  ),
+  windowTitle = "Vaccine Integrity Project"
+)
+
+## CIDRAP left, VIP right
+if (FALSE) {
+  header <- shiny::headerPanel(
+    shiny::fluidRow(
+      shiny::column(cidrap_logo, width = 6),
+      shiny::column(shiny::tags$span(vip_text, vip_logo, style = "vertical-align:middle;display:inline-block;"), align = "right", width = 6),
+      style = "background:#ECF5F8;border:solid #246A87;padding:2px;"
+    ),
+    windowTitle = "Vaccine Integrity Project"
+  )
+}
+
+# Landing page
+landing_page_text <- shiny::tagList(
+  shiny::tags$h2(shiny::tags$strong("About the Vaccine Integrity Project:", style = sprintf("color:%s;", primary_color))),
+  shiny::tags$p("CIDRAP's Vaccine Integrity Project is an initiative dedicated to safeguarding vaccine use in the U.S. so that it remains grounded in the best available science, free from external influence, and focused on optimizing protection of individuals, families, and communities against vaccine-preventable diseases."),
+  shiny::tags$p("The Vaccine Integrity Project issued its final report from the planning phase summarizing its findings from the exploratory phase, focused on what is needed to ensure the integrity of the U.S. vaccine system, including vaccine evaluations and clinical guidelines based on rigorous and timely reviews."),
+  shiny::tags$p(
+    "The Vaccine Integrity Project is focusing on actions that stemmed from its earlier work:",
+    shiny::tags$li(shiny::tags$strong("Implementing a rapid response accountability effort."), " In response to misleading and inaccurate claims, the Vaccine Integrity Project aims to launch a rapid response communications initiative to monitor and address vaccine- and public health-related misinformation originating from official, federal sources in real time."),
+    shiny::tags$li(shiny::tags$strong("Developing and disseminating the evidence base for immunization recommendations and clinical consideration."), " Engaging with healthcare providers, the public health community, and medical societies, CIDRAP is leading a comprehensive review of scientific evidence to inform immunization recommendations so that clinicians have evidence-backed guidance on the key immunizations for all ages on COVID, RSV, and influenza heading into respiratory virus season."),
+    shiny::tags$li(shiny::tags$strong("Fostering continued collaboration and visibility."), " This work is far from over, and no single organization can operate in isolation. The scale and complexity of the challenges ahead demand ongoing collaboration and coordinated action across the ecosystem. Regular convening will support better alignment, reduce duplication, and help prioritize and address emerging issues in real time.")
+  )
+)
+
+# UI
 ui <- function(request) {
   bslib::page_fluid(
     title = "Vaccine Integrity Project",
@@ -307,13 +418,6 @@ ui <- function(request) {
     shiny::tags$head(shiny::tags$script(shiny::HTML("$(document).ready(function() {
   $('.btn-close').addClass('btn-close-white');
 });"))),
-    # shiny::headerPanel(
-    #   title = shiny::tags$h1(
-    #     shiny::tags$img(src = "logo.svg"),
-    #     shiny::tags$text("Vaccine Integrity Project", style = sprintf("vertical-align:middle;float:right;padding-top:30px;font-size:25px;color:%s;", primary_color))
-    #  ),
-    #  windowTitle = "Vaccine Integrity Project"
-    #),
     #shiny::tags$head(shiny::tags$style(shiny::HTML(dt_btn_style))),
     #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".nav-tabs{--bs-nav-link-color:%s;--bs-nav-tabs-link-active-color:%s;}", primary_color, secondary_color)))),
     #shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs--shiny .irs-handle.state_hover, .irs--shiny .irs-handle:hover{background-color:%s;", slider_color)))),
@@ -336,8 +440,6 @@ ui <- function(request) {
         ),
         style = tab_style,
         bslib::card(
-          #shiny::tags$img(src = "assets/logo.svg", style = "height:200px;"),
-          #shiny::tags$img(src = "logo.svg", style = "height:200px;"),
           shiny::tags$h1(shiny::tags$strong("Welcome to the Vaccine Integrity Project!", style = sprintf("color:%s;", primary_color))),
           shiny::tags$a("Project homepage", href = "https://www.cidrap.umn.edu/vaccine-integrity-project"),
           shiny::tags$a("YouTube link to presentation", href = "https://www.youtube.com/watch?v=lSuvGlxqrpg"),
@@ -350,73 +452,28 @@ ui <- function(request) {
         title = "Studies",
         icon = shiny::icon("book", verfiy_fa = FALSE),
         style = tab_style,
-        bslib::layout_sidebar(
-          sidebar = bslib::sidebar(
-            #width = "30%",
-            open = FALSE,
-            bslib::accordion(
-              open = TRUE,
-              style = accordion_style,
-              bslib::accordion_panel(
-                title = "Virus",
-                icon = virus_icon,
-                shiny::checkboxGroupInput(
-                  inputId = "studies_virus",
-                  label = shiny::tags$strong("Virus", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-                  choices = c("COVID", "RSV", "Influenza"),
-                  selected = c("COVID", "RSV", "Influenza")
-                )
-              ),
-              bslib::accordion_panel(
-                title = "Population",
-                icon = population_icon,
-                shiny::checkboxGroupInput(
-                  inputId = "studies_population",
-                  label = shiny::tags$strong("Population", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-                  choiceNames = c("Pregnancy", "Pediatrics", "Adults", "Immunocompromised"),
-                  choiceValues = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."),
-                  selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
-                )
-              ),
-              bslib::accordion_panel(
-                title = "Study details",
-                icon = shiny::icon("sliders", verify_fa = FALSE),
-                shiny::checkboxGroupInput(
-                  inputId = "rob",
-                  label = shiny::tags$strong("Risk of bias", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-                  choices = c("Low", "Moderate", "High"),
-                  selected = c("Low", "Moderate", "High")
-                ),
-                shiny::checkboxGroupInput(
-                  inputId = "study_design",
-                  label = shiny::tags$strong("Study design", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-                  choices = c("RCT", "Case-control", "Cohort", "Observational - other"),
-                  selected = c("RCT", "Case-control", "Cohort", "Observational - other")
-                )
-              )
-            )
-          ),
-
-          bslib::layout_columns(
-            bslib::card(
-              #style = "resize:vertical;",
-              #shiny::bookmarkButton(),
-              #plotly::plotlyOutput(outputId = "plot_studies", width = "100%", height = "400px")
-              # Width 240 (smallest)-340 (ideal)
-              #shiny::plotOutput(outputId = "plot_studies", width = "100%", height = "400px", click = "plot_studies_click")
-              shiny::fluidRow(
-                #shiny::column(rob_study_design, width = 6, align = "left"),
-                #shiny::column(reset_btn, width = 6, align = "right")
-                #shiny::column(bslib::tooltip(rob_study_design, "Select study type"), bslib::tooltip(data_options, "Population/virus details"), width = 6, align = "left"),
-                #shiny::column(rob_study_design, data_options, width = 6, align = "left"),
-                shiny::column(bslib::tooltip(reset_btn, "Reset data"), width = 12, align = "right")
-              ),
-              shiny::plotOutput(outputId = "plot_studies", width = "340px", height = "400px", click = "plot_studies_click")
+        bslib::layout_columns(
+          bslib::card(
+            #style = "resize:vertical;",
+            #shiny::bookmarkButton(),
+            #plotly::plotlyOutput(outputId = "plot_studies", width = "100%", height = "400px")
+            # Width 240 (smallest)-340 (ideal)
+            #shiny::plotOutput(outputId = "plot_studies", width = "100%", height = "400px", click = "plot_studies_click")
+            shiny::fluidRow(
+              #shiny::column(rob_study_design, width = 6, align = "left"),
+              #shiny::column(reset_btn, width = 6, align = "right")
+              #shiny::column(add_tooltip(rob_study_design, "Select study type"), add_tooltip(data_options, "Population/virus details"), width = 6, align = "left"),
+              #shiny::column(rob_study_design, data_options, width = 6, align = "left"),
+              shiny::column(width = 6, align = "left", data_options),
+              shiny::column(width = 6, align = "right", reset_btn)
             ),
-            DT::DTOutput("table_studies")
+            shiny::plotOutput(outputId = "plot_studies", width = "340px", height = "400px", click = "plot_studies_click")
           ),
-          shiny::tags$h6("Note: data are subject to change", style = sprintf("color:%s;", secondary_color))
-        )
+          bslib::card(
+            DT::DTOutput("table_studies")
+          )
+        ),
+        shiny::tags$h6("Note: data are subject to change", style = sprintf("color:%s;", secondary_color))
       )
     )
   )
@@ -424,40 +481,47 @@ ui <- function(request) {
 
 # Server ------------------------------------------------------------------
 server <- function(input, output, session) {
-  studies <- shiny::reactiveVal(data)
+  plot_data <- shiny::reactiveVal(data)
+  table_data <- shiny::reactiveVal(data)
+
   #shiny::observeEvent(input$rob, {
   #  n_rob <- length(input$rob)
   #  if (n_rob < 3L && n_rob != 0L) {
-  #    studies(data[data$rob %in% input$rob, ])
+  #    plot_data(data[data$rob %in% input$rob, ])
   #  } else {
-  #    studies(data)
+  #    plot_data(data)
   #  }
   #})
-  shiny::observeEvent(input$reset_data, {
-    studies(data)
+  shiny::observeEvent(input$data_reset, {
+    shiny::updateCheckboxGroupInput(inputId = "studies_virus", selected = c("COVID", "RSV", "Influenza"))
+    shiny::updateCheckboxGroupInput(inputId = "studies_population", selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."))
+    shiny::updateCheckboxGroupInput(inputId = "rob", selected = c("Low", "Moderate", "High"))
+    shiny::updateCheckboxGroupInput(inputId = "study_design", selected = c("RCT", "Case-control", "Cohort", "Observational - other"))
+    plot_data(data)
+    table_data(data)
   })
   studies_plot <- shiny::reactive({
     tryElse(
       VIP::plot_crosstable2(
-        df = studies(),
+        df = plot_data(),
         x = "virus",
         y = "population",
         label_size = 20,
-        # plot_margin = ggplot2::margin(r = 30, t = 10, b = 10, l = 10),
         font_size = 18
       )
     )
   })
 
+  # Update both plot data and table data
   shiny::observeEvent(c(input$studies_virus, input$studies_population, input$rob, input$study_design), {
-    #shiny::req(!is.null(input$studies_virus) && !all(input$studies_virus == ""))
-    #shiny::req(!is.null(input$studies_population) && !all(input$studies_population == ""))
     viruses <- input$studies_virus %||% c("COVID", "RSV", "Influenza")
     populations <- input$studies_population %||% c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
-    study_design <- input$study_design %||% c("RCT", "Case-control", "Cohort", "Observational - other")
+    design <- input$study_design %||% c("RCT", "Case-control", "Cohort", "Observational - other")
     rob <- input$rob %||% c("Low", "Moderate", "High")
-    idx <- data$virus %in% viruses & data$population %in% populations & data$study_design %in% study_design & data$rob %in% rob
-    studies(data[idx, ])
+    idx <- data$virus %in% viruses & data$population %in% populations & data$study_design %in% design & data$rob %in% rob
+    tmp_data <- data[idx, ]
+    plot_data(tmp_data)
+    table_data(tmp_data)
   })
 
   # Plot output
@@ -483,18 +547,30 @@ server <- function(input, output, session) {
   #  out
   # })
   #abers::debug_editorServer()
-  #shiny::observeEvent(input$plot_studies_dbl_click, {})
+
+  # Update table_data in response to plot click
+  shiny::observeEvent(input$plot_studies_click, {
+    #click <- input$plot_studies_click
+    click <- tryElse(get_click_position(input$plot_studies_click))
+    if (!is.null(click)) {
+      #x_pos <- get_position(click$x, levels = c("COVID", "RSV", "Influenza"))
+      #y_pos <- get_position(click$y, levels = rev(c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")))
+      #table_data(tryElse(plot_data()[plot_data()$population == y_pos & plot_data()$virus == x_pos, ], plot_data()))
+      #browser()
+      table_data(tryElse(plot_data()[plot_data()$population == click$y & plot_data()$virus == click$x, ], plot_data()))
+    }
+  })
 
   # Raw data table
   output$table_studies <- DT::renderDataTable({
-    click <- input$plot_studies_click
-    tmp <- if (is.null(click)) {
-      studies()
-    } else {
-      x_pos <- get_position(click$x, levels = c("COVID", "RSV", "Influenza"))
-      y_pos <- get_position(click$y, levels = rev(c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")))
-      tryElse(studies()[studies()$population == y_pos & studies()$virus == x_pos, ], studies())
-    }
+    #click <- input$plot_studies_click
+    #tmp <- if (is.null(click)) {
+    #  plot_data()
+    #} else {
+    #  x_pos <- get_position(click$x, levels = c("COVID", "RSV", "Influenza"))
+    #  y_pos <- get_position(click$y, levels = rev(c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")))
+    #  tryElse(plot_data()[plot_data()$population == y_pos & plot_data()$virus == x_pos, ], plot_data())
+    #}
     # tmp <- plotly::event_data("plotly_click")
     # z <- shiny::nearPoints(
     #  df = data,
@@ -503,6 +579,8 @@ server <- function(input, output, session) {
     #  yvar = "population"
     # )
     # if (!is.null(tmp)) browser()
+    #tmp <- tmp[unique(c("article", names(tmp)))]
+    tmp <- table_data()
     tmp <- tmp[unique(c("article", names(tmp)))]
     names(tmp)[names(tmp) == "rob"] <- "Risk of bias"
     out <- DT::datatable(

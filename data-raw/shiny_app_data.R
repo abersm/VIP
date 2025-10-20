@@ -1,6 +1,5 @@
 library(dplyr)
 df_shiny <- VIP::study_info |>
-  filter(id_redcap != 629) |>
   select(
     id_redcap, id_covidence, article,
     virus, covid, rsv, flu,

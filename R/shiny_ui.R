@@ -557,3 +557,19 @@ incrementorInput <- function(
   )
   htmltools::attachDependencies(input, dependency)
 }
+
+#' Add tooltip to UI element
+#'
+#' @noRd
+add_tooltip <- function(obj, text, position = "auto", ...) {
+  shiny::tagList(
+    shiny::tagAppendAttributes(
+      obj,
+      title = shiny::HTML(as.character(text)),
+      `data-bs-toggle` = "tooltip",
+      `data-bs-html` = "true",
+      `data-bs-placement` = position,
+      ...
+    )
+  )
+}

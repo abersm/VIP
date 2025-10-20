@@ -4,9 +4,19 @@ devtools::install_github("abersm/VIP")
 
 tryElse <- function(x, otherwise = NULL) tryCatch(suppressWarnings(x), error = function(e) otherwise)
 
-get_position <- function(x, levels = c("COVID", "RSV", "Influenza")) {
-  delta <- abs(seq_along(levels) - x)
-  levels[which.min(delta)]
+get_click_position <- function(x) {
+  if (is.null(x)) return(NULL)
+  domain <- x$domain
+  x_position <- findInterval(x$x, seq.int(domain$left, domain$right, by = 1L), rightmost.closed = FALSE, left.open = TRUE)
+  y_position <- findInterval(x$y, seq.int(domain$bottom, domain$top, by = 1L), rightmost.closed = FALSE, left.open = TRUE)
+  x_levels <- unlist(domain$discrete_limits$x, use.names = FALSE)
+  x_levels <- c(x_levels[1L], x_levels, x_levels[length(x_levels)])
+  y_levels <- unlist(domain$discrete_limits$y, use.names = FALSE)
+  y_levels <- c(y_levels[1L], y_levels, y_levels[length(y_levels)])
+  list(
+    x = x_levels[x_position + 1L],
+    y = y_levels[y_position + 1L]
+  )
 }
 
 # Data --------------------------------------------------------------------
@@ -198,9 +208,27 @@ slider_style <- sprintf(".irs--shiny .irs-handle.state_hover, .irs--shiny .irs-h
 # Popover style
 css_popover <- sprintf(".popover{border-color: %s;}.popover-header{background-color: %s;color:%s;}.popover .btn-close{--bs-btn-close-opacity:1;}", primary_color, primary_color, "white")
 
+# Accordion style
+accordion_btn_border_color <- "white"
+accordion_text_color <- "white"
+#accordion_btn_fill_color <- .clr_alpha_filter(primary_color, 0.1)
+accordion_btn_fill_color <- "#E9F0F3"
+accordion_style <- sprintf("
+  --bs-accordion-color:%s;
+  --bs-accordion-border-color:%s;
+  --bs-accordion-active-bg:%s;
+  --bs-accordion-active-color:%s;
+  --bs-accordion-btn-bg:%s;
+  --bs-accordion-btn-focus-box-shadow:none;",
+                           primary_color,
+                           accordion_btn_border_color,
+                           primary_color,
+                           accordion_text_color,
+                           accordion_btn_fill_color
+)
+
 # All style elements
 css_style <- paste0(
-  #".shiny-plot-output:hover{cursor:pointer;}",
   "#plot_studies:hover{cursor:pointer;}",
   css_popover,
   dt_btn_style,
@@ -222,45 +250,6 @@ landing_page_text <- shiny::tagList(
   )
 )
 
-# Exported data options (population, virus)
-data_options <- bslib::popover(
-  title = "Select virus/population",
-  trigger = shiny::icon("sliders", style = sprintf("border-radius:1rem;padding:0.3rem;background:%s;color:white;width:min-content;", primary_color)),
-  shiny::checkboxGroupInput(
-    inputId = "studies_virus",
-    label = shiny::tags$strong("Virus", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-    choices = c("COVID", "RSV", "Influenza"),
-    selected = c("COVID", "RSV", "Influenza")
-  ),
-  shiny::checkboxGroupInput(
-    inputId = "studies_population",
-    label = shiny::tags$strong("Population", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-    choiceNames = c("Pregnancy", "Pediatrics", "Adults", "Immunocompromised"),
-    choiceValues = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."),
-    selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
-  )
-)
-data_options <- add_tooltip(data_options, "Select virus/population")
-
-# Risk of bias and study design options
-rob_study_design <- bslib::popover(
-  title = "Study characteristics",
-  trigger = shiny::icon("list-check", style = sprintf("border-radius:1rem;padding:0.3rem;background:%s;color:white;width:min-content;", primary_color)),
-  shiny::checkboxGroupInput(
-    inputId = "rob",
-    label = shiny::tags$strong("Risk of bias", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-    choices = c("Low", "Moderate", "High"),
-    selected = c("Low", "Moderate", "High")
-  ),
-  shiny::checkboxGroupInput(
-    inputId = "study_design",
-    label = shiny::tags$strong("Study design", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
-    choices = c("RCT", "Case-control", "Cohort", "Observational - other"),
-    selected = c("RCT", "Case-control", "Cohort", "Observational - other")
-  )
-)
-rob_study_design <- add_tooltip(rob_study_design, "Select study characteristics")
-
 # Reset data button
 reset_btn <- shiny::tags$button(
   id = "data_reset",
@@ -270,6 +259,26 @@ reset_btn <- shiny::tags$button(
   style = sprintf("width:30px;height:30px;text-align:center;padding:2px 0;font-size:18px;line-height:50%%;border-radius:30px;outline:none;background:%s;", secondary_color),
   shiny::tags$span(shiny::icon("arrow-rotate-left", verify_fa = FALSE)),
   style = "color:white;"
+)
+
+virus_icon <- shiny::tags$svg(
+  xmlns = "http://www.w3.org/2000/svg",
+  width = "16",
+  height = "16",
+  fill = "currentColor",
+  class = "bi bi-virus2",
+  viewbox = "0 0 16 16",
+  shiny::tags$path(d = "M8 0a1 1 0 0 0-1 1v1.143c0 .557-.407 1.025-.921 1.24-.514.214-1.12.162-1.513-.231l-.809-.809a1 1 0 1 0-1.414 1.414l.809.809c.394.394.445.999.23 1.513C3.169 6.593 2.7 7 2.144 7H1a1 1 0 0 0 0 2h1.143c.557 0 1.025.407 1.24.921.214.514.163 1.12-.231 1.513l-.809.809a1 1 0 0 0 1.414 1.414l.809-.809c.394-.394.999-.445 1.513-.23.514.214.921.682.921 1.24V15a1 1 0 1 0 2 0v-1.143c0-.557.407-1.025.921-1.24.514-.214 1.12-.162 1.513.231l.809.809a1 1 0 0 0 1.414-1.414l-.809-.809c-.393-.394-.445-.999-.23-1.513.214-.514.682-.921 1.24-.921H15a1 1 0 1 0 0-2h-1.143c-.557 0-1.025-.407-1.24-.921-.214-.514-.162-1.12.231-1.513l.809-.809a1 1 0 0 0-1.414-1.414l-.809.809c-.394.393-.999.445-1.513.23-.514-.214-.92-.682-.92-1.24V1a1 1 0 0 0-1-1Zm2 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 7a1 1 0 1 1-2 0 1 1 0 0 1 2 0m1 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2m4-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0")
+)
+
+population_icon <- shiny::tags$svg(
+  xmlns = "http://www.w3.org/2000/svg",
+  width = "16",
+  height = "16",
+  fill = "currentColor",
+  class = "bi bi-people-fill",
+  viewbox = "0 0 16 16",
+  shiny::tags$path(d = "M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5")
 )
 
 # JS code
@@ -309,6 +318,7 @@ ui <- function(request) {
     shiny::tags$head(shiny::tags$script(shiny::HTML("$(document).ready(function() {
   $('.btn-close').addClass('btn-close-white');
 });"))),
+    #abers::debug_editorUI(),
     # shiny::headerPanel(
     #   title = shiny::tags$h1(
     #     shiny::tags$img(src = "logo.svg"),
@@ -350,11 +360,56 @@ ui <- function(request) {
       # Overview tab ------------------------------------------------------------
       shiny::tabPanel(
         title = "Studies",
-        #abers::debug_editorUI(),
         icon = shiny::icon("book", verfiy_fa = FALSE),
         style = tab_style,
-        bslib::card(
-          #style = "resize:horizontal;",
+        bslib::layout_sidebar(
+          sidebar = bslib::sidebar(
+            #width = "265px",
+            #height ="400px",
+            open = FALSE,
+            bslib::accordion(
+              open = TRUE,
+              style = accordion_style,
+              bslib::accordion_panel(
+                title = "Virus",
+                icon = virus_icon,
+                shiny::checkboxGroupInput(
+                  inputId = "studies_virus",
+                  label = shiny::tags$strong("Virus", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+                  choices = c("COVID", "RSV", "Influenza"),
+                  selected = c("COVID", "RSV", "Influenza")
+                )
+              ),
+              bslib::accordion_panel(
+                title = "Population",
+                icon = population_icon,
+                shiny::checkboxGroupInput(
+                  inputId = "studies_population",
+                  label = shiny::tags$strong("Population", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+                  choiceNames = c("Pregnancy", "Pediatrics", "Adults", "Immunocompromised"),
+                  choiceValues = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."),
+                  selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
+                )
+              ),
+              bslib::accordion_panel(
+                title = "Study details",
+                icon = shiny::icon("sliders", verify_fa = FALSE),
+                shiny::checkboxGroupInput(
+                  inputId = "rob",
+                  label = shiny::tags$strong("Risk of bias", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+                  choices = c("Low", "Moderate", "High"),
+                  selected = c("Low", "Moderate", "High")
+                ),
+                shiny::checkboxGroupInput(
+                  inputId = "study_design",
+                  label = shiny::tags$strong("Study design", style = sprintf("font-size:1.05rem;color:%s;", primary_color)),
+                  choices = c("RCT", "Case-control", "Cohort", "Observational - other"),
+                  selected = c("RCT", "Case-control", "Cohort", "Observational - other")
+                )
+              )
+            )
+          ),
+
           bslib::layout_columns(
             bslib::card(
               #style = "resize:vertical;",
@@ -366,24 +421,17 @@ ui <- function(request) {
                 #shiny::column(rob_study_design, width = 6, align = "left"),
                 #shiny::column(reset_btn, width = 6, align = "right")
                 #shiny::column(add_tooltip(rob_study_design, "Select study type"), add_tooltip(data_options, "Population/virus details"), width = 6, align = "left"),
-                shiny::column(rob_study_design, data_options, width = 6, align = "left"),
-                shiny::column(add_tooltip(reset_btn, "Reset data"), width = 6, align = "right")
+                #shiny::column(rob_study_design, data_options, width = 6, align = "left"),
+                shiny::column(add_tooltip(reset_btn, "Reset data"), width = 12, align = "right")
               ),
-              shiny::plotOutput(
-                outputId = "plot_studies",
-                width = "340px",
-                height = "400px",
-                #hover = shiny::hoverOpts(id = "plot_studies_hover", clip = TRUE, nullOutside = TRUE),
-                click = "plot_studies_click"
-              )
+              shiny::plotOutput(outputId = "plot_studies", width = "340px", height = "400px", click = "plot_studies_click")
             ),
             bslib::card(
-              #data_options,
               DT::DTOutput("table_studies")
             )
-          )
-        ),
-        shiny::tags$h6("Note: data are subject to change", style = sprintf("color:%s;", secondary_color))
+          ),
+          shiny::tags$h6("Note: data are subject to change", style = sprintf("color:%s;", secondary_color))
+        )
       )
     )
   )
@@ -391,22 +439,29 @@ ui <- function(request) {
 
 # Server ------------------------------------------------------------------
 server <- function(input, output, session) {
-  studies <- shiny::reactiveVal(data)
+  plot_data <- shiny::reactiveVal(data)
+  table_data <- shiny::reactiveVal(data)
+
   #shiny::observeEvent(input$rob, {
   #  n_rob <- length(input$rob)
   #  if (n_rob < 3L && n_rob != 0L) {
-  #    studies(data[data$rob %in% input$rob, ])
+  #    plot_data(data[data$rob %in% input$rob, ])
   #  } else {
-  #    studies(data)
+  #    plot_data(data)
   #  }
   #})
-  shiny::observeEvent(input$reset_data, {
-    studies(data)
+  shiny::observeEvent(input$data_reset, {
+    shiny::updateCheckboxGroupInput(inputId = "studies_virus", selected = c("COVID", "RSV", "Influenza"))
+    shiny::updateCheckboxGroupInput(inputId = "studies_population", selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."))
+    shiny::updateCheckboxGroupInput(inputId = "rob", selected = c("Low", "Moderate", "High"))
+    shiny::updateCheckboxGroupInput(inputId = "study_design", selected = c("RCT", "Case-control", "Cohort", "Observational - other"))
+    plot_data(data)
+    table_data(data)
   })
   studies_plot <- shiny::reactive({
     tryElse(
       VIP::plot_crosstable2(
-        df = studies(),
+        df = plot_data(),
         x = "virus",
         y = "population",
         label_size = 20,
@@ -416,15 +471,18 @@ server <- function(input, output, session) {
     )
   })
 
+  # Update both plot data and table data
   shiny::observeEvent(c(input$studies_virus, input$studies_population, input$rob, input$study_design), {
     #shiny::req(!is.null(input$studies_virus) && !all(input$studies_virus == ""))
     #shiny::req(!is.null(input$studies_population) && !all(input$studies_population == ""))
     viruses <- input$studies_virus %||% c("COVID", "RSV", "Influenza")
     populations <- input$studies_population %||% c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
-    study_design <- input$study_design %||% c("RCT", "Case-control", "Cohort", "Observational - other")
+    design <- input$study_design %||% c("RCT", "Case-control", "Cohort", "Observational - other")
     rob <- input$rob %||% c("Low", "Moderate", "High")
-    idx <- data$virus %in% viruses & data$population %in% populations & data$study_design %in% study_design & data$rob %in% rob
-    studies(data[idx, ])
+    idx <- data$virus %in% viruses & data$population %in% populations & data$study_design %in% design & data$rob %in% rob
+    tmp_data <- data[idx, ]
+    plot_data(tmp_data)
+    table_data(tmp_data)
   })
 
   # Plot output
@@ -450,18 +508,30 @@ server <- function(input, output, session) {
   #  out
   # })
   #abers::debug_editorServer()
-  #shiny::observeEvent(input$plot_studies_dbl_click, {})
+
+  # Update table_data in response to plot click
+  shiny::observeEvent(input$plot_studies_click, {
+    #click <- input$plot_studies_click
+    click <- tryElse(get_click_position(input$plot_studies_click))
+    if (!is.null(click)) {
+      #x_pos <- get_position(click$x, levels = c("COVID", "RSV", "Influenza"))
+      #y_pos <- get_position(click$y, levels = rev(c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")))
+      #table_data(tryElse(plot_data()[plot_data()$population == y_pos & plot_data()$virus == x_pos, ], plot_data()))
+      #browser()
+      table_data(tryElse(plot_data()[plot_data()$population == click$y & plot_data()$virus == click$x, ], plot_data()))
+    }
+  })
 
   # Raw data table
   output$table_studies <- DT::renderDataTable({
-    click <- input$plot_studies_click
-    tmp <- if (is.null(click)) {
-      studies()
-    } else {
-      x_pos <- get_position(click$x, levels = c("COVID", "RSV", "Influenza"))
-      y_pos <- get_position(click$y, levels = rev(c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")))
-      tryElse(studies()[studies()$population == y_pos & studies()$virus == x_pos, ], studies())
-    }
+    #click <- input$plot_studies_click
+    #tmp <- if (is.null(click)) {
+    #  plot_data()
+    #} else {
+    #  x_pos <- get_position(click$x, levels = c("COVID", "RSV", "Influenza"))
+    #  y_pos <- get_position(click$y, levels = rev(c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")))
+    #  tryElse(plot_data()[plot_data()$population == y_pos & plot_data()$virus == x_pos, ], plot_data())
+    #}
     # tmp <- plotly::event_data("plotly_click")
     # z <- shiny::nearPoints(
     #  df = data,
@@ -470,6 +540,8 @@ server <- function(input, output, session) {
     #  yvar = "population"
     # )
     # if (!is.null(tmp)) browser()
+    #tmp <- tmp[unique(c("article", names(tmp)))]
+    tmp <- table_data()
     tmp <- tmp[unique(c("article", names(tmp)))]
     names(tmp)[names(tmp) == "rob"] <- "Risk of bias"
     out <- DT::datatable(
