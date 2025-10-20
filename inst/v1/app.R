@@ -208,31 +208,13 @@ accordion_style <- sprintf("
                            accordion_btn_fill_color
 )
 
-# Checkbox style
-checkbox_style <- sprintf(
-  '.form-check-label, .shiny-input-container .checkbox label, .shiny-input-container .checkbox-inline label, .shiny-input-container .radio label, .shiny-input-container .radio-inline label{
-  color:%s;
-  }
-  .form-check-input:focus, .shiny-input-container .checkbox input:focus, .shiny-input-container .checkbox-inline input:focus, .shiny-input-container .radio input:focus, .shiny-input-container .radio-inline input:focus{
-  box-shadow:none;
-  border-color:%s;
-  }
-  .form-check-input:checked, .shiny-input-container .checkbox input:checked, .shiny-input-container .checkbox-inline input:checked, .shiny-input-container .radio input:checked, .shiny-input-container .radio-inline input:checked{
-  background-color:%s;
-  border-color:%s;
-  }
-  .form-check-input[type="checkbox"], .shiny-input-container .checkbox input[type="checkbox"], .shiny-input-container .checkbox-inline input[type="checkbox"], .shiny-input-container .radio input[type="checkbox"], .shiny-input-container .radio-inline input[type="checkbox"]{
-  border-color:%s;
-  }', header_border_color, header_border_color, header_border_color, header_border_color, header_border_color)
-
 # All style elements
 css_style <- paste0(
   "#plot_studies:hover{cursor:pointer;}",
   popover_style,
   dt_btn_style,
   nav_style,
-  slider_style,
-  checkbox_style
+  slider_style
 )
 css_style <- shiny::tags$head(shiny::tags$style(shiny::HTML(css_style)))
 
@@ -414,6 +396,7 @@ ui <- function(request) {
       secondary = secondary_color
     ),
     header,
+    shiny::tags$head(shiny::tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
     css_style,
     js_popover,
     shiny::tags$head(shiny::tags$script(shiny::HTML("$(document).ready(function() {

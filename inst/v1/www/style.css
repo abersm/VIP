@@ -1,0 +1,90 @@
+.form-check-label, .shiny-input-container .checkbox label, .shiny-input-container .checkbox-inline label, .shiny-input-container .radio label, .shiny-input-container .radio-inline label{
+  color: #00498F;
+}
+
+.form-check,.shiny-input-container .checkbox,.shiny-input-container .radio {
+    display: block;
+    min-height: 1.5rem;
+    padding-left: 0;
+    margin-bottom: .25rem
+}
+
+.form-check .form-check-input,.form-check .shiny-input-container .checkbox input,.form-check .shiny-input-container .radio input,.shiny-input-container .checkbox .form-check-input,.shiny-input-container .checkbox .shiny-input-container .checkbox input,.shiny-input-container .checkbox .shiny-input-container .radio input,.shiny-input-container .radio .form-check-input,.shiny-input-container .radio .shiny-input-container .checkbox input,.shiny-input-container .radio .shiny-input-container .radio input {
+    float: left;
+    margin-left: 0
+}
+
+.form-check-reverse {
+    padding-right: 0;
+    padding-left: 0;
+    text-align: right
+}
+
+.form-check-reverse .form-check-input {
+    float: right;
+    margin-right: 0;
+    margin-left: 0
+}
+
+.form-check-input,.shiny-input-container .checkbox input,.shiny-input-container .checkbox-inline input,.shiny-input-container .radio input,.shiny-input-container .radio-inline input {
+    --bs-form-check-bg: var(--bs-body-bg);
+    width: 1.2em;
+    height: 1.2em;
+    margin-top: .15em;
+    vertical-align: top;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    -ms-appearance: none;
+    -o-appearance: none;
+    background-color: var(--bs-form-check-bg);
+    background-image: var(--bs-form-check-bg-image);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    border: var(--bs-border-width) solid #8D959E;
+    print-color-adjust: exact
+}
+
+.form-check-input[type="checkbox"],.shiny-input-container .checkbox input[type="checkbox"],.shiny-input-container .checkbox-inline input[type="checkbox"],.shiny-input-container .radio input[type="checkbox"],.shiny-input-container .radio-inline input[type="checkbox"] {
+    border-radius: 2px
+}
+
+.form-check-input[type="radio"],.shiny-input-container .checkbox input[type="radio"],.shiny-input-container .checkbox-inline input[type="radio"],.shiny-input-container .radio input[type="radio"],.shiny-input-container .radio-inline input[type="radio"] {
+    border-radius: 50%
+}
+
+.form-check-input:active,.shiny-input-container .checkbox input:active,.shiny-input-container .checkbox-inline input:active,.shiny-input-container .radio input:active,.shiny-input-container .radio-inline input:active {
+    filter: brightness(90%)
+}
+
+.form-check-input:focus,.shiny-input-container .checkbox input:focus,.shiny-input-container .checkbox-inline input:focus,.shiny-input-container .radio input:focus,.shiny-input-container .radio-inline input:focus {
+    border-color: #00498F;
+    outline: 0;
+    box-shadow: none
+}
+
+.form-check-input:checked,.shiny-input-container .checkbox input:checked,.shiny-input-container .checkbox-inline input:checked,.shiny-input-container .radio input:checked,.shiny-input-container .radio-inline input:checked {
+    background-color: #00498F;
+    border-color: #00498F
+}
+
+.form-check-input:checked[type="checkbox"],.shiny-input-container .checkbox input:checked[type="checkbox"],.shiny-input-container .checkbox-inline input:checked[type="checkbox"],.shiny-input-container .radio input:checked[type="checkbox"],.shiny-input-container .radio-inline input:checked[type="checkbox"] {
+    --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e")
+}
+
+.form-check-input:checked[type="radio"],.shiny-input-container .checkbox input:checked[type="radio"],.shiny-input-container .checkbox-inline input:checked[type="radio"],.shiny-input-container .radio input:checked[type="radio"],.shiny-input-container .radio-inline input:checked[type="radio"] {
+    --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e")
+}
+
+.form-check-input[type="checkbox"]:indeterminate,.shiny-input-container .checkbox input[type="checkbox"]:indeterminate,.shiny-input-container .checkbox-inline input[type="checkbox"]:indeterminate,.shiny-input-container .radio input[type="checkbox"]:indeterminate,.shiny-input-container .radio-inline input[type="checkbox"]:indeterminate {
+    background-color: #00498F;
+    border-color: #00498F;
+    --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10h8'/%3e%3c/svg%3e")
+}
+
+.form-check-input:disabled,.shiny-input-container .checkbox input:disabled,.shiny-input-container .checkbox-inline input:disabled,.shiny-input-container .radio input:disabled,.shiny-input-container .radio-inline input:disabled {
+    pointer-events: none;
+    filter: none;
+    opacity: .5
+}
