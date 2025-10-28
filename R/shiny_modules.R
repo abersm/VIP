@@ -934,14 +934,14 @@ metaAnalysisUI <- function(
 #' Server for meta-analysis module
 #'
 #' @inheritParams crosstableServer
-#' @param df_meta,df_meta_raw Data frames for raw data and final results of meta-analysis
+#' df_meta,df_meta_raw Data frames for raw data and final results of meta-analysis
 #' @param id_export_plot_btn ID for button to export plot. Default is `"export_plot_btn"`
 #' @returns Enter inside server function of shiny app
 #' @export
 metaAnalysisServer <- function(
   id,
-  df_meta_raw = tryElse(VIP::ve_meta_raw),
-  df_meta = tryElse(VIP::ve_meta),
+  #df_meta_raw = tryElse(VIP::ve_meta_raw),
+  #df_meta = tryElse(VIP::ve_meta),
   plotly_toolbar_buttons = "toImage",
   id_export_plot_btn = "export_plot_btn") {
   .plot_ve <- function(
@@ -1076,7 +1076,7 @@ metaAnalysisServer <- function(
     ns <- session$ns
     # Create plot
     plot_static <- shiny::reactive({
-      data_all <- .prepare_meta_analysis_data(raw_data = df_meta_raw, meta = df_meta, virus = input$virus, population = input$population, outcome = input$outcome, input$study_design, low_rob = input$rob)
+      data_all <- .prepare_meta_analysis_data(raw_data = VIP::ve_meta_raw, meta = VIP::ve_meta, virus = input$virus, population = input$population, outcome = input$outcome, input$study_design, low_rob = input$rob)
       tryElse(
         .plot_ve(
           data_all,
@@ -1141,7 +1141,7 @@ metaAnalysisServer <- function(
       },
       content = function(file) {
         #shiny::req(input$selected_dfs)
-        df_all <- .prepare_meta_analysis_data(raw_data = df_meta_raw, meta = df_meta, virus = input$virus, population = input$population, outcome = input$outcome, input$study_design, low_rob = input$rob)
+        df_all <- .prepare_meta_analysis_data(raw_data = VIP::ve_meta_raw, meta = VIP::ve_meta, virus = input$virus, population = input$population, outcome = input$outcome, input$study_design, low_rob = input$rob)
         df_all <- dplyr::arrange(df_all, .data$virus, .data$outcome, .data$population, .data$study_design, .data$is_meta, .data$estimate)
         if (input$export_data_filetype == "csv") {
           utils::write.csv(df_all, file, row.names = FALSE)
