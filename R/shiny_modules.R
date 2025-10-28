@@ -625,13 +625,6 @@ metaAnalysisUI <- function(
     icon = shiny::tags$i(table_icon),
     title = "Export meta-analysis data",
     hover_text = "Export data",
-    shiny::checkboxGroupInput(
-      inputId = ns("export_data"),
-      label = "Data to export",
-      choiceNames = c("Raw data (from studies)", "Meta-analysis results"),
-      choiceValues = c("raw_data", "meta_results"),
-      selected = c("raw_data", "meta_results")
-    ),
     shiny::selectInput(
       inputId = ns("export_data_filetype"),
       label = "File type",
@@ -1144,41 +1137,18 @@ metaAnalysisServer <- function(
       filename = function() {
         shiny::req(input$export_data_filename)
         base_name <- if(input$export_data_filename == "") "vip_meta_analysis_data" else input$export_data_filename
-        if (input$export_data_filetype == "csv") {
-          if (length(input$selected_dfs) == 1) {
-            paste0(base_name, ".csv")
-          } else {
-            paste0(base_name, "_multiple.zip")
-          }
-        } else {
-          paste0(base_name, ".xlsx")
-        }
+        paste0(base_name, ".", input$export_data_filetype)
       },
       content = function(file) {
-        shiny::req(input$selected_dfs)
+        #shiny::req(input$selected_dfs)
+        df_all <- .prepare_meta_analysis_data(raw_data = df_meta_raw, meta = df_meta, virus = input$virus, population = input$population, outcome = input$outcome, input$study_design, low_rob = input$rob)
+        df_all <- dplyr::arrange(df_all, .data$virus, .data$outcome, .data$population, .data$study_design, .data$is_meta, .data$estimate)
         if (input$export_data_filetype == "csv") {
-          if (length(input$selected_dfs) == 1L) {
-            # Single CSV file
-            utils::write.csv(available_dfs[[input$selected_dfs[1L]]], file, row.names = FALSE)
-          } else {
-            # Multiple CSV files in a ZIP
-            temp_dir <- tempdir()
-            file_paths <- NULL
-            for (df_name in input$selected_dfs) {
-              csv_file <- file.path(temp_dir, paste0(df_name, ".csv"))
-              utils::write.csv(available_dfs[[df_name]], csv_file, row.names = FALSE)
-              file_paths <- c(file_paths, csv_file)
-            }
-            utils::zip(file, file_paths, flags = "-j")
-          }
+          utils::write.csv(df_all, file, row.names = FALSE)
         } else {
-          # Excel file with multiple sheets
-          wb <- openxlsx::createWorkbook()
-          for (df_name in input$selected_dfs) {
-            openxlsx::addWorksheet(wb, df_name)
-            openxlsx::writeData(wb, df_name, available_dfs[[df_name]])
-          }
-          openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+          openxlsx::buildWorkbook(x = list(Sheet_1 = df_all), keepNA = FALSE, na.string = "NA", firstActiveCol = 3, firstActiveRow = 2, withFilter = TRUE, headerStyle = openxlsx::createStyle(textDecoration = "bold", valign = "center"))
+          openxlsx::modifyBaseFont(wb = workbook, fontSize = 12, fontColour = "black", fontName = "Arial")
+          openxlsx::saveWorkbook(wb = workbook, file = file)
         }
       }
     )
