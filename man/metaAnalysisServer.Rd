@@ -6,12 +6,16 @@
 \usage{
 metaAnalysisServer(
   id,
+  df_meta_raw = tryElse(VIP::ve_meta_raw),
+  df_meta = tryElse(VIP::ve_meta),
   plotly_toolbar_buttons = "toImage",
   id_export_plot_btn = "export_plot_btn"
 )
 }
 \arguments{
 \item{id}{Input id. Must match \code{id} entered in \code{crosstableUI}}
+
+\item{df_meta, df_meta_raw}{Data frames for raw data and final results of meta-analysis}
 
 \item{plotly_toolbar_buttons}{Buttons to include in plotly toolbar}
 

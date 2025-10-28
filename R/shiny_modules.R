@@ -941,11 +941,18 @@ metaAnalysisUI <- function(
 #' Server for meta-analysis module
 #'
 #' @inheritParams crosstableServer
+#' @param df_meta,df_meta_raw Data frames for raw data and final results of meta-analysis
 #' @param id_export_plot_btn ID for button to export plot. Default is `"export_plot_btn"`
 #' @returns Enter inside server function of shiny app
 #' @export
-metaAnalysisServer <- function(id, plotly_toolbar_buttons = "toImage", id_export_plot_btn = "export_plot_btn") {
+metaAnalysisServer <- function(
+  id,
+  df_meta_raw = tryElse(VIP::ve_meta_raw),
+  df_meta = tryElse(VIP::ve_meta),
+  plotly_toolbar_buttons = "toImage",
+  id_export_plot_btn = "export_plot_btn") {
   .plot_ve <- function(
+    x,
     virus,
     population,
     outcome = "Hospitalization",
@@ -963,7 +970,6 @@ metaAnalysisServer <- function(id, plotly_toolbar_buttons = "toImage", id_export
     point_border_thickness = 1,
     point_border_color = "black",
     show_het = FALSE) {
-    x <- .prepare_meta_analysis_data(virus = virus, population = population, outcome = outcome, study_design, low_rob = low_rob)
     n <- nrow(x) + 1L
     if (missing(ratio)) {
       ratio <- 0.09*n + 0.56
@@ -1077,8 +1083,10 @@ metaAnalysisServer <- function(id, plotly_toolbar_buttons = "toImage", id_export
     ns <- session$ns
     # Create plot
     plot_static <- shiny::reactive({
+      data_all <- .prepare_meta_analysis_data(raw_data = df_meta_raw, meta = df_meta, virus = input$virus, population = input$population, outcome = input$outcome, input$study_design, low_rob = input$rob)
       tryElse(
         .plot_ve(
+          data_all,
           virus = input$virus,
           population = input$population,
           outcome = input$outcome,
@@ -1202,6 +1210,8 @@ metaAnalysisServer <- function(id, plotly_toolbar_buttons = "toImage", id_export
 #'
 #' @noRd
 .prepare_meta_analysis_data <- function(
+  raw_data = tryElse(VIP::ve_meta_raw),
+  meta = tryElse(VIP::ve_meta),
   virus = NULL,
   population = NULL,
   outcome = NULL,
@@ -1228,7 +1238,8 @@ metaAnalysisServer <- function(id, plotly_toolbar_buttons = "toImage", id_export
     rob <- "Low"
     low_rob <- TRUE
   }
-  x <- list(raw_data = VIP::ve_meta_raw, results = VIP::ve_meta)
+  #x <- list(raw_data = VIP::ve_meta_raw, results = VIP::ve_meta)
+  x <- list(raw_data = raw_data, results = meta)
   x <- lapply(x, function(y) y[y$population %in% population & y$virus %in% virus & y$study_design %in% study_design & y$outcome %in% outcome, , drop = FALSE])
   if (nrow(x[[2L]]) == 0L || nrow(x[[1L]]) == 0L) return(NULL)
   x$results$id_redcap <- NULL

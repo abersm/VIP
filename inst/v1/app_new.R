@@ -42,6 +42,15 @@ data_studies$population[data_studies$population == "Pregnant"] <- "Pregnancy"
 data_studies$population[data_studies$population == "Immunocomp"] <- "Immunocomp."
 data_studies$population <- factor(data_studies$population, levels = rev(pop_levels))
 
+# Meta-analysis data
+## Raw data
+#meta_raw <- VIP::ve_meta_raw
+meta_raw <- utils::read.csv(system.file("v1", "meta_raw.csv", package = "VIP"))
+
+## Meta-analysis results
+#meta <- VIP::ve_meta
+meta <- utils::read.csv(system.file("v1", "meta.csv", package = "VIP"))
+
 # Style --------------------------------------------------------------------
 primary_color <- "#246A87"
 secondary_color <- "#A63B86"
@@ -542,7 +551,7 @@ server <- function(input, output, session) {
   }, server = FALSE)
 
   # Meta-analysis tab
-  plot_meta <- VIP::metaAnalysisServer("meta")
+  plot_meta <- VIP::metaAnalysisServer("meta", df_meta_raw = meta_raw, df_meta = meta)
 }
 
 shiny::shinyApp(ui, server, enableBookmarking = "url")
