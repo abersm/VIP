@@ -553,7 +553,9 @@ metaAnalysisServer <- function(
     # Plot output
     ## Static plot (non-interactive)
     output$plot <- shiny::renderPlot({
-      plot_static()
+      input$virus
+      #plot_static()
+      plot(1:5, 1:5)
     })
     ## Interactive plot
     #output$plotly <- plotly::renderPlotly({
