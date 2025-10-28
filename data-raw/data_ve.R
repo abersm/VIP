@@ -359,16 +359,43 @@ ve <- ve |>
       virus == "Multiple" & covid == 1 & rsv == 0 & flu == 0 ~ "COVID",
       virus == "Multiple" & covid == 0 & rsv == 1 & flu == 0 ~ "RSV",
       virus == "Multiple" & covid == 0 & rsv == 0 & flu == 1 ~ "Influenza",
+      is.na(virus) & covid == 0 & rsv == 0 & flu == 1 ~ "Influenza",
       .default = virus
     ),
+    vax_type = case_when(
+      id_redcap == 445 & (is.na(vax_product) | vax_product == "Other") & virus == "Influenza" & is.na(vax_type) ~ "Multiple",
+      vax_other %in% c("XBB.1.5-adapted mRNA vaccine", "Non-specified XBB vaccine", "Bivalent COVID boosters", "BNT162b2 and mRNA-1273 XBB1.5 formulations", "BNT162b2 or mRNA-1273 (not disagreggated)", "Bivalent BA.4/5 (Pfizer or Moderna not specified)", "Monovalent XBB.1.5 (Pfizer or Moderna not specified)", "LAIV, TIV, QIV", "US 2024-2025 influenza vaccine (product not specified)", "Vaccine type not specified") ~ "Multiple",
+      grepl("specified|seasonal", vax_other) ~ "Multiple",
+      grepl("Aggregated (list of products not provided", vax_other, fixed = TRUE) ~ "Multiple",
+      grepl("Depending on study: QIV (plus variations aQIV, QIV-HD, QIVc), LIAV", vax_other, fixed = TRUE) ~ "Multiple",
+      .default = vax_type
+    ),
     vax_product = case_when(
-      virus == "Influenza" & vax_other %in% c("Surface antigen, MF59-adjuvanted, Fluad Tetra (®Seqirus)", "Surface antigen, Flucelvax Tetra (®Seqirus)", "Adjuvanated QIV (inactived): Fluad Tetra", "High dose inactivated QIV (Efluelda Tetra)") ~ "IIV",
-      virus != "Multiple" & !is.na(vax_product) & !vax_product %in% c("Other", "Multiple") ~ vax_product,
+      virus == "Influenza" & vax_other %in% c("Surface antigen, MF59-adjuvanted, Fluad Tetra (®Seqirus)", "Surface antigen, Flucelvax Tetra (®Seqirus)", "Adjuvanated QIV (inactived): Fluad Tetra", "High dose inactivated QIV (Efluelda Tetra)", "ccIIV", "Split-virion, high-dose, Efluelda Tetra (®Sanofi, recommended only ≥60 years of age)") ~ "IIV",
+      #virus != "Multiple" & !is.na(vax_product) & !vax_product %in% c("Other", "Multiple") ~ vax_product,
       vax_product == "Other" & virus == "Influenza" ~ "Influenza - other",
       virus == "COVID" & vax_product %in% c("Comirnaty, Spikevax or Nuvaxovid") ~ "COVID - other",
-      virus == "COVID" & tolower(vax_other) %in% c("comirnarty or spikevax", "pfizer, moderna", "bnt162b2 and mrna-1273 xbb1.5 formulations", "239 539 pfizer, 347 598 moderna vaccine recipients", "bivalent BA.4/5 (pfizer or moderna not specified)", "xbb.1.5 monovalent (pfizer or moderna not specified)", "monovalent xbb.1.5 (pfizer or moderna not specified)", "pfizer/moderna bivalent booster 8-120 days ago") ~ "COVID - mRNA vaccines",
+      virus == "COVID" & tolower(vax_other) %in% c("comirnarty or spikevax", "pfizer, moderna", "bnt162b2 and mrna-1273 xbb1.5 formulations", "239 539 pfizer, 347 598 moderna vaccine recipients", "bivalent ba.4/5 (pfizer or moderna not specified)", "xbb.1.5 monovalent (pfizer or moderna not specified)", "monovalent xbb.1.5 (pfizer or moderna not specified)", "xbb.1.5-adapted mrna vaccine", "pfizer/moderna bivalent booster 8-120 days ago", "bnt162b2 or mrna-1273 (not disagreggated)", "bivalent ba.4/5 (pfizer or moderna not specified)") ~ "COVID - mRNA vaccines",
+      virus == "COVID" & (is.na(vax_product) | vax_product == "Other") & vax_other %in% c("Non-Specific XBB vaccination. Pfizer and Moderna are the only 2 licensed in Canada", "XBB.1.5 mRNA vaccines", "Pfizer or Moderna vaccine", "Polled Pfizer and Moderna xbb1.5", "Pooled Comirnaty Omicron XBB.1.5 and Spikevax XBB.1.5", "Pooled Moderna and Pfizer 2023-2024 formulations") ~ "COVID - mRNA vaccines",
+      virus == "COVID" & (is.na(vax_product) | vax_product == "Other") & vax_other %in% c("BNT162b2 XBB or Novavax XBB", "2023-2024 US covid vaccine dose (no disaggregation)", "any 2023-2024 U.S. licensed COVID-19 vaccine formulationx", "Any U.S. licensed 2024-2025 COVID-19 vaccine (no disaggregation)", "Updated US licensed 2023-2024 monovalent XBB.1.5 COVID-19 vaccines (products not disaggregated)") ~ "COVID - other",
+      virus == "COVID" & (is.na(vax_product) | vax_product == "Other") & vax_type %in% c("COVID - other", "Multiple") ~ "COVID - other",
+      virus == "RSV" & (is.na(vax_product) | vax_product == "Other") & vax_type %in% c("RSV - other", "Multiple") ~ "RSV - other",
+      virus == "RSV" & (is.na(vax_product) | vax_product == "Other") & vax_other %in% c("RSVPreF3 (AREXVY) + RSVPreF (Abrysvo)", "Either Arexvy or Abrysvo (not disaggregated)") ~ "RSV - other",
+      virus == "Influenza" & (is.na(vax_product) | vax_product == "Other") & vax_other %in% c("The influenza vaccines used in China during the 2023-2024 epidemic season included the trivalent inactivated influenza vaccine (IIV3), the quadrivalent inactivated influenza vaccine (IIV4), and the trivalent live attenuated influenza vaccine (LAIV3)", "Multiple influenza vaccines", "LAIV and QIV", "Influvac Tetra, Fluenz Tetra, or Flucelvax Tetra", "IIV used in 99% cases. Of these, egg-based produced used in 90%", "the specific types of flu vaccines participants received were not identified", "The study reports on VE for influenza A(H1N1)pdm09, influenza A(H3N2), and influenza B", "Standard-dose seasonal influenza vaccines, including trivalent (seasons 2013/14-2018/19) and quadrivalent (from season 2019/20 onwards) formulations.") ~ "Influenza - other",
+      (is.na(vax_product) | vax_product == "Other") & virus == "Influenza" & vax_type == "Multiple" ~ "Influenza - other",
       is.na(vax_product) ~ "Other",
       .default = vax_product
+    ),
+    vax_product_notes = case_when(
+      grepl("XBB", vax_product, ignore.case = TRUE) ~ "XBB.1.5 vaccine",
+      grepl("XBB", vax_other, ignore.case = TRUE) ~ "XBB.1.5 vaccine",
+      vax_other == "Bivalent COVID boosters" ~ "Bivalent booster",
+      vax_other == "Bivalent BA.4/5 (Pfizer or Moderna not specified)" ~ "Bivalent BA.4/5",
+      vax_other %in% c("Surface antigen, MF59-adjuvanted, Fluad Tetra (®Seqirus)", "Adjuvanated QIV (inactived): Fluad Tetra") ~ "Adjuvanted",
+      vax_typeNOTES == "MF59-adjuvanted (Fluad)." ~ "Adjuvanted",
+      vax_typeNOTES == "QIV (Influvac Tetra or Vaxigrip Tetra). Standard dose." ~ "Standard dose",
+      vax_other %in% c("Split-virion, high-dose, Efluelda Tetra (®Sanofi, recommended only ≥60 years of age)", "High dose inactivated QIV (Efluelda Tetra)") ~ "High dose",
+      .default = NA_character_
     )
   )
 
@@ -394,7 +421,7 @@ ve <- ve |>
     # Key study (article) identifiers
     id_redcap, id_covidence, reviewer, article, study_period,
     # Highly relevant columns
-    virus, vax_product, vax_type, vax_other,
+    virus, vax_product, vax_product_notes, vax_type, vax_other,
     population,
     study_design, study_setting,
     comparator, comparator_vax,
@@ -417,7 +444,7 @@ ve <- ve |>
     population_disagg, population_comment,
     ## Other
     everything(),
-    -any_of(c("n_vaccines_studied", "second_review_yn", "exclude"))
+    -any_of(c("n_vaccines_studied", "second_review_yn", "exclude", "vax_complete", "cochrane_rob2_complete"))
   )
 
 # Incorporate reclassified "VE other outcome"

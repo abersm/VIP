@@ -4,7 +4,6 @@
 #' @param primary_color,secondary_color Primary and secondary color for application
 #' @param slider_color,switch_color Color for sliders and switches
 #' @param accordion_fill_color,accordion_text_color Color for background and text of accordions
-#' @param pills If `TRUE`, tabs are displayed as pills
 #' @param crosstab_fn Function used for generating heatmap of study counts
 #' @param clean_data If `TRUE`, only studies using terminology for efficacy and safety outcomes are included in app
 #' @returns Shiny app run in new window
@@ -20,16 +19,17 @@ vip_shiny <- function(
     accordion_fill_color = primary_color,
     accordion_text_color = secondary_color,
     switch_color = primary_color,
-    pills = FALSE,
     crosstab_fn = plot_crosstable2,
     clean_data = TRUE) {
   # Data
   if (clean_data) {
-    data_ve <- data_ve[data_ve$outcome %!in% c("Other", "Other- non-RSV LRTIs", "Other- composite of severe, critical, and death"), , drop = FALSE]
+    data_ve <- data_ve[data_ve$outcome %!in% c("Other", "Other- non-RSV LRTIs", "Other- composite of severe, critical, and death", "Other- non-RSV LRTIs"), , drop = FALSE]
     data_ve <- data_ve[data_ve$vax_product != "Other", , drop = FALSE]
     data_ae <- data_ae[data_ae$vax_product != "Other", , drop = FALSE]
   }
-  tab_style <- paste0("p-3 border ", if (pills) "rounded ", "border-top-0 rounded-bottom")
+  #pills <- FALSE
+  #tab_style <- paste0("p-3 border ", if (pills) "rounded ", "border-top-0 rounded-bottom")
+  tab_style <- "p-3 border border-top-0 rounded-bottom"
   if (is.null(data_stats)) {
     data_stats <- dplyr::bind_rows(apply(data_ve[c("n_vaccinated_with_outcome", "n_unvaccinated_with_outcome", "n_vaccinated_total", "n_unvaccinated_total")], 1, function(x) {
       tp <- x["n_vaccinated_with_outcome"]
@@ -45,7 +45,7 @@ vip_shiny <- function(
   tooltip_default <- intersect(tooltip_options, c("virus", "vax_product", "outcome", "id_redcap", "id_covidence", "study_design", "n_vaccinated_total", "n_vaccinated_with_outcome", "n_unvaccinated_total", "n_unvaccinated_with_outcome", "pops_in_study"))
 
   # Icons
-  ## Code derived from https://icons.getbootstrap.com/icons/bar-chart-steps/
+  ## Code from https://icons.getbootstrap.com/icons/bar-chart-steps/
   forest_plot_icon <- shiny::tags$svg(
     xmlns = "http://www.w3.org/2000/svg",
     width = "16",
@@ -55,7 +55,7 @@ vip_shiny <- function(
     viewbox = "0 0 16 16",
     shiny::tags$path(d = "M.5 0a.5.5 0 0 1 .5.5v15a.5.5 0 0 1-1 0V.5A.5.5 0 0 1 .5 0M2 1.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5z")
   )
-  ## Code derived from https://icons.getbootstrap.com/icons/info-circle/
+  ## Code from https://icons.getbootstrap.com/icons/info-circle/
   info_icon <- shiny::tags$svg(
     xmlns = "http://www.w3.org/2000/svg",
     width = "16",
@@ -96,11 +96,8 @@ vip_shiny <- function(
     shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs--shiny .irs-handle.state_hover, .irs--shiny .irs-handle:hover{background-color:%s;", slider_color)))),
     shiny::tabsetPanel(
       id = "tabs",
-
-      # Study domain tab --------------------------------------------------------
+      # Landing page ------------------------------------------------------------
       shiny::tabPanel(
-        #title = "Study domain",
-        #icon = shiny::icon("database", verify_fa = FALSE),
         title = "Landing page",
         icon = info_icon,
         style = tab_style,

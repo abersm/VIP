@@ -8,7 +8,7 @@ update_file <- function(file_name) {
 }
 
 lapply(
-  c("data_core", "data_ve", "data_ae", "data_epi", "data_coadmin", "data_domain", "data_rob", "data_pubs", "data_studies", "shiny_app_data"),
+  c("data_core", "data_ve", "data_ae", "data_epi", "data_coadmin", "data_domain", "data_rob", "data_pubs", "data_studies", "data_app"),
   update_file
 )
 

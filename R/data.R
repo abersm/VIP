@@ -101,3 +101,20 @@
 #'   \item{id_redcap}{RedCAP id}
 #'   }
 "df_shiny"
+
+#' Raw data for VE meta-analysis
+#'
+#' @format Data frame
+#' \describe{
+#'   \item{id_redcap}{RedCAP id}
+#'   }
+"ve_meta_raw"
+
+#' VE meta-analysis results including sensitivity analysis
+#'
+#' Distinguish core meta-analysis from sensitivity meta-analysis using "sensitivity_criteria" column
+#' @format Data frame
+#' \describe{
+#'   \item{id_redcap}{RedCAP id}
+#'   }
+"ve_meta"

@@ -15,7 +15,6 @@ vip_shiny(
   accordion_fill_color = primary_color,
   accordion_text_color = secondary_color,
   switch_color = primary_color,
-  pills = FALSE,
   crosstab_fn = plot_crosstable2,
   clean_data = TRUE
 )
@@ -28,8 +27,6 @@ vip_shiny(
 \item{slider_color, switch_color}{Color for sliders and switches}
 
 \item{accordion_fill_color, accordion_text_color}{Color for background and text of accordions}
-
-\item{pills}{If \code{TRUE}, tabs are displayed as pills}
 
 \item{crosstab_fn}{Function used for generating heatmap of study counts}
 

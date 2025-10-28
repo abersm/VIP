@@ -1,3 +1,6 @@
+#' Subset data frame
+#'
+#' @noRd
 slice_data <- function(
   x = NULL,
   y = NULL,
@@ -17,7 +20,7 @@ slice_data <- function(
     )
   }
   if (domain == "ve") {
-    df <- df[df$outcome %!in% c("Other", "Other- non-RSV LRTIs", "Other- composite of severe, critical, and death"), , drop = FALSE]
+    df <- df[df$outcome %in% .ve_outcome_levels, , drop = FALSE]
   }
   #z <- c(
   #  "Adult", "Adult, elder", "Adult/elder", "Elder",
@@ -42,12 +45,12 @@ slice_data <- function(
   }
   df <- dplyr::mutate(
       df,
-      vax_product = ifelse(vax_product == "Other" & virus == "Influenza", "Influenza - other", vax_product),
-      population = dplyr::case_when(
-        population == "Infant" & outcome == "MI" ~ "Pregnant",
-        outcome %in% c("SGA", "Prematurity") ~ "Pregnant",
-        .default = population
-      ),
+      #vax_product = ifelse(vax_product == "Other" & virus == "Influenza", "Influenza - other", vax_product),
+      #population = dplyr::case_when(
+      #  population == "Infant" & outcome == "MI" ~ "Pregnant",
+      #  outcome %in% c("SGA", "Prematurity") ~ "Pregnant",
+      #  .default = population
+      #),
       pop_category = dplyr::case_when(
         grepl("immunocomp", population, ignore.case = TRUE) ~ "Immunocomp",
         population %in% c("Infant", "Child", "Infant/child") ~ "Peds",
@@ -96,25 +99,4 @@ slice_data <- function(
   df$vax_product <- factor(df$vax_product, levels = vax_levels)
   df <- dplyr::distinct(df, .data$id_redcap, .data[[x]], .data[[y]], .keep_all = TRUE)
   df
-}
-
-#' Filter data to include pediatrics studies only
-#'
-#' @noRd
-peds_only <- function(x) {
-  x[x$population %in% c("Infant", "Child", "Infant/child"), , drop = FALSE]
-}
-
-#' Filter data to include adult studies only
-#'
-#' @noRd
-adults_only <- function(x) {
-  x[x$population %in% c("Adult", "Elder", "Adult/elder"), , drop = FALSE]
-}
-
-#' Filter data to include immunocompromised studies only
-#'
-#' @noRd
-immunocomp_only <- function(x) {
-  x[grepl("immunocomp", x$population, ignore.case = TRUE), , drop = FALSE]
 }

@@ -558,6 +558,20 @@ incrementorInput <- function(
   htmltools::attachDependencies(input, dependency)
 }
 
+#' Update value of incrementor button
+#'
+#' @rdname incrementorInput
+#' @param session Shiny session
+#' @param inputId Input id for `incrementorInput`
+#' @param value Updated value. Enter as length 1 numeric
+#' @returns UI updated. Enter in server function
+#' @export
+updateIncrementor <- function(session = shiny::getDefaultReactiveDomain(), inputId, value = NULL) {
+  z <- list(value = value)
+  z <- z[lengths(z, use.names = FALSE) != 0L]
+  session$sendInputMessage(inputId, z)
+}
+
 #' Add tooltip to UI element
 #'
 #' @noRd
@@ -571,5 +585,68 @@ add_tooltip <- function(obj, text, position = "auto", ...) {
       `data-bs-placement` = position,
       ...
     )
+  )
+}
+
+#' Popover button
+#'
+#' @param ... Components to appear in popover upon trigger. Arguments passed to `bslib::popover`
+#' @param icon Icon to display (clicking icon will trigger popover)
+#' @param icon_color Color of `icon`. Default is `"white"`
+#' @param color Color of circle popover button that contains `icon` inside. Default is `"#00498F"`
+#' @param hover_text Text to display when hovering over `icon`. Default is empty (`""`)
+#' @param title Title for popover card. Default is blank (`""`)
+#' @param id_popover Popover id
+#' @param id_btn Button id
+#' @returns Enter as element in UI
+#' @export
+popover_btn <- function(
+    ...,
+    icon = NULL,
+    icon_color = "white",
+    color = "#00498F",
+    hover_text = "",
+    title = "",
+    id_popover = NULL,
+    id_btn = NULL) {
+  btn <- shiny::tags$button(
+    type = "button",
+    `data-val` = NULL,
+    class = "btn action-button",
+    style = sprintf("width:30px;height:30px;text-align:center;padding:2px 0;font-size:18px;line-height:50%%;border-radius:30px;outline:none;color:%s;background:%s;", icon_color, color),
+    shiny::tags$span(icon)
+  )
+  if (!is.null(id_btn)) {
+    btn$attribs$id <- id_btn
+  }
+  js_popover <- shiny::tags$head(
+    shiny::tags$script(
+      shiny::HTML(
+        "$(document).ready(function () {",
+        "  $('body').on('click', function (e) {",
+        "    $('[data-bs-toggle=popover]').each(function () {",
+        "      if (!$(this).is(e.target) &&",
+        "          $(this).has(e.target).length === 0 &&",
+        "          $('.popover').has(e.target).length === 0) {",
+        "        $(this).popover('hide');",
+        "      }",
+        "    });",
+        "  });",
+        "})"
+      )
+    )
+  )
+  js_close_btn_white <- shiny::tags$head(shiny::tags$script(shiny::HTML("$(document).ready(function() {
+  $('.btn-close').addClass('btn-close-white');
+});")))
+  css_popover <- shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".popover{border-color: %s;}.popover-header{background-color: %s;color:%s;}.popover .btn-close{--bs-btn-close-opacity:1;}", color, color, "white"))))
+  btn <- shiny::tagList(shiny::tagAppendAttributes(btn, title = shiny::HTML(hover_text), `data-bs-toggle` = "tooltip", `data-bs-html` = "true", `data-bs-placement` = "auto"), js_close_btn_white, css_popover, js_popover)
+    #btn <- shiny::tagList(shiny::tagAppendAttributes(btn, title = shiny::HTML(hover_text), `data-bs-toggle` = "tooltip", `data-bs-html` = "true", `data-bs-placement` = "auto"))
+  bslib::popover(
+    title = title,
+    trigger = btn,
+    placement = "right",
+    id = id_popover,
+    ...
   )
 }
