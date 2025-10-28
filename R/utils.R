@@ -1,4 +1,4 @@
-utils::globalVariables(c("ae", "ve", "epi", "domain", "core", "fill", "population"))
+utils::globalVariables(c("ae", "ve", "epi", "domain", "core", "fill", "population", ".x"))
 
 #' "Not in" operator
 #'

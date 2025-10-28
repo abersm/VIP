@@ -423,6 +423,7 @@ editTableServer <- function(id, df, allowRowEdit = FALSE, allowColumnEdit = FALS
 #' UI for meta-analysis module
 #'
 #' @inheritParams crosstableUI
+#' @param slider_color,switch_color Color for slider and switch
 #' @param id_export_plot_btn ID for export plot button. Default is `"export_plot_btn"`
 #' @returns Enter as input to UI
 #' @export
@@ -1027,7 +1028,7 @@ metaAnalysisServer <- function(id, plotly_toolbar_buttons = "toImage", id_export
       .add_het_anno <- function(plot, data = NULL, size = 12/.pt, x_pos = -1, y_pos = c(-0.1, -0.2, -0.3, -0.4), header = NULL, long = FALSE, show_tau = FALSE) {
         data <- data %||% plot@data
         data <- data[data$is_meta, , drop = FALSE]
-        label <- format_heterogeneity_label(
+        label <- .format_heterogeneity_label(
           i2 = data$I2_estimate[1L],
           tau2 = data$tau2_estimate[1L],
           p = data$p_het[1L],

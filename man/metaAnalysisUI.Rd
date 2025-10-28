@@ -37,6 +37,8 @@ metaAnalysisUI(
 
 \item{primary_color, secondary_color}{Primary and secondary color used for bootstrap theme. Default is \code{"#A63B86"} for \code{secondary_color}}
 
+\item{slider_color}{Color for slider}
+
 \item{incrementor_button_color}{Color for incrementor button}
 
 \item{id_export_plot_btn}{ID for export plot button. Default is \code{"export_plot_btn"}}

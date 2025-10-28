@@ -12,14 +12,13 @@ Depends:
     R (>= 3.5)
 Imports:
     bslib,
-    devtools,
     dplyr,
     DT,
     ggplot2,
     grDevices,
     htmltools,
     meta,
-    metafor,
+    openxlsx,
     patchwork,
     plotly,
     rhandsontable,
@@ -32,5 +31,7 @@ Imports:
     utils,
     waffle
 Suggests:
-    emojifont
+    emojifont,
+    devtools,
+    metafor
 LazyData: true
