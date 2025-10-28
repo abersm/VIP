@@ -551,7 +551,8 @@ server <- function(input, output, session) {
   }, server = FALSE)
 
   # Meta-analysis tab
-  plot_meta <- VIP::metaAnalysisServer("meta", df_meta_raw = meta_raw, df_meta = meta)
+  #plot_meta <- VIP::metaAnalysisServer("meta", df_meta_raw = meta_raw, df_meta = meta)
+  plot_meta <- VIP::metaAnalysisServer("meta")
 }
 
 shiny::shinyApp(ui, server, enableBookmarking = "url")
