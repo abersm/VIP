@@ -1,4 +1,6 @@
+#gihub_token_set()
 devtools::install_github("abersm/VIP")
+library(VIP)
 
 # Functions ---------------------------------------------------------------
 
@@ -46,10 +48,14 @@ data_studies$population <- factor(data_studies$population, levels = rev(pop_leve
 ## Raw data
 #meta_raw <- VIP::ve_meta_raw
 meta_raw <- utils::read.csv(system.file("v1", "meta_raw.csv", package = "VIP"))
+#data("ve_meta_raw", package = "VIP")
+#meta_raw <- ve_meta_raw
 
 ## Meta-analysis results
 #meta <- VIP::ve_meta
 meta <- utils::read.csv(system.file("v1", "meta.csv", package = "VIP"))
+#data("ve_meta", package = "VIP")
+#meta <- ve_meta
 
 # Style --------------------------------------------------------------------
 primary_color <- "#246A87"
@@ -551,8 +557,8 @@ server <- function(input, output, session) {
   }, server = FALSE)
 
   # Meta-analysis tab
-  #plot_meta <- VIP::metaAnalysisServer("meta", df_meta_raw = meta_raw, df_meta = meta)
-  plot_meta <- VIP::metaAnalysisServer("meta")
+  plot_meta <- VIP::metaAnalysisServer("meta", raw_data = meta_raw, meta = meta)
+  #plot_meta <- VIP::metaAnalysisServer("meta")
 }
 
 shiny::shinyApp(ui, server, enableBookmarking = "url")
