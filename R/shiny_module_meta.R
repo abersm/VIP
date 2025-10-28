@@ -529,133 +529,6 @@ metaAnalysisServer <- function(
   if (!is.data.frame(meta)) {
     stop("meta must be a data frame", call. = FALSE)
   }
-  .plot_ve <- function(
-    x,
-    virus,
-    population,
-    outcome = "Hospitalization",
-    study_design = "Case-control",
-    ...,
-    low_rob = FALSE,
-    ratio = 0.75,
-    x_axis_breaks = NULL,
-    colors = c("white", "black"),
-    ordering_var = "estimate",
-    min_zero = TRUE,
-    title = NULL,
-    base_size = 14,
-    point_size = 5,
-    point_border_thickness = 1,
-    point_border_color = "black",
-    show_het = FALSE) {
-    n <- nrow(x) + 1L
-    if (missing(ratio)) {
-      ratio <- 0.09*n + 0.56
-    }
-    if (missing(base_size)) {
-      base_size <- if (n >= 10) 10 else (19 - n)
-    }
-    if (missing(point_size)) {
-      point_size <- if (n >= 10) 3.5 else if (n <= 5) 4.5 else 4
-    }
-    if (is.null(x_axis_breaks)) {
-      x_axis_breaks <- if (!min_zero && min(x$lower, na.rm = TRUE) < 0) seq(-20, 100, 20) else seq(0, 100, 20)
-    }
-    if (is.null(virus)) {
-      stripe_colors <- "#22222222"
-    } else {
-      virus_color <- switch(virus, COVID = "#90B28430", RSV = "#7295B430", Influenza = "#F5D46F50")
-      stripe_colors <- c(virus_color, rep_len("#22222222", length.out = nrow(x)))
-    }
-    out <- plot_forest(
-      x,
-      estimate = "estimate",
-      lower = "lower",
-      upper = "upper",
-      y_var = "study_label",
-      point_color_var = "is_meta",
-      point_color = colors,
-      point_border_thickness = point_border_thickness,
-      point_border_color = point_border_color,
-      x_axis_title = "Vaccine effectiveness (%)",
-      aspect_ratio = ratio,
-      x_axis_breaks = x_axis_breaks,
-      odd_stripe_colors = rep_len(stripe_colors, length.out = nrow(x)),
-      even_stripe_colors = rep_len("#FFFFFF00", length.out = nrow(x)),
-      y_axis_labels = NULL,
-      ordering_var = ordering_var,
-      base_size = base_size,
-      point_size = point_size,
-      ...
-    )
-    pop_title <- switch(
-      population,
-      Elder = "Older adults",
-      Adults = "Adults",
-      `Adult/Elder` = "All adults",
-      `Infant/Child` = "Infants/children",
-      Infant = "Infants",
-      Child = "Children",
-      population
-    )
-    title <- paste(virus, pop_title, outcome, study_design, sep = "\n")
-    out <- out + ggplot2::ggtitle(title)
-    out <- add_column_table(
-      out,
-      plot_margin = ggplot2::margin(),
-      right_cols = list("Estimate (95% CI)" = ".estimate_label"),
-      left_cols = list(Study = ".y_var"),
-      left_args = list(label_hjust = 1)
-    )
-    out <- reorder_y_axis(out, dplyr::desc(.x))
-    if (show_het) {
-      .add_het_anno <- function(plot, data = NULL, size = 12/.pt, x_pos = -1, y_pos = c(-0.1, -0.2, -0.3, -0.4), header = NULL, long = FALSE, show_tau = FALSE) {
-        data <- data %||% plot@data
-        data <- data[data$is_meta, , drop = FALSE]
-        label <- .format_heterogeneity_label(
-          i2 = data$I2_estimate[1L],
-          tau2 = data$tau2_estimate[1L],
-          p = data$p_het[1L],
-          sep = NULL
-        )
-        if (!show_tau) {
-          label <- label[-3L]
-        }
-        if (long) {
-          label[1L] <- header %||% "underline('Heterogeneity:')"
-          label <- paste0(label, collapse = "~")
-          n <- length(label)
-          x_pos <- rep_len(x_pos, length.out = n)
-          y_pos <- rep_len(y_pos, length.out = n)
-          plot[[2L]] <- plot[[2L]] + ggplot2::annotate(
-            geom = "text",
-            size = size,
-            x = I(x_pos), y = I(y_pos),
-            label = label,
-            hjust = 0, vjust = 0.5,
-            parse = TRUE
-          )
-        } else {
-          label[1L] <- header %||% "'Heterogeneity:'"
-          label <- paste0(label, collapse = "~")
-          n <- length(label)
-          x_pos <- rep_len(x_pos, length.out = n)
-          y_pos <- rep_len(y_pos, length.out = n)
-          plot[[2L]] <- plot[[2L]] + ggplot2::annotate(
-            geom = "text",
-            size = size,
-            x = I(x_pos[1L]), y = I(y_pos[1L]),
-            label = label,
-            hjust = 0, vjust = 0.5,
-            parse = TRUE
-          )
-        }
-        plot
-      }
-      out <- .add_het_anno(out)
-    }
-    out
-  }
   #`%#%` <- function(x, y) if (is.null(x) || !is.numeric(x)) y else x
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
@@ -815,4 +688,135 @@ metaAnalysisServer <- function(
   x <- dplyr::bind_rows(x)
   x$pop_label <- unname(pop_labels[x$population])
   x[c(x_names, "pop_label", "I2_estimate", "tau2_estimate", "p_het", "model_type", "tau_method")]
+}
+
+#' Plot vaccine effectiveness in meta-analysis module
+#'
+#' @noRd
+.plot_ve <- function(
+    x,
+    virus,
+    population,
+    outcome = "Hospitalization",
+    study_design = "Case-control",
+    ...,
+    low_rob = FALSE,
+    ratio = 0.75,
+    x_axis_breaks = NULL,
+    colors = c("white", "black"),
+    ordering_var = "estimate",
+    min_zero = TRUE,
+    title = NULL,
+    base_size = 14,
+    point_size = 5,
+    point_border_thickness = 1,
+    point_border_color = "black",
+    show_het = FALSE) {
+  n <- nrow(x) + 1L
+  if (missing(ratio)) {
+    ratio <- 0.09*n + 0.56
+  }
+  if (missing(base_size)) {
+    base_size <- if (n >= 10) 10 else (19 - n)
+  }
+  if (missing(point_size)) {
+    point_size <- if (n >= 10) 3.5 else if (n <= 5) 4.5 else 4
+  }
+  if (is.null(x_axis_breaks)) {
+    x_axis_breaks <- if (!min_zero && min(x$lower, na.rm = TRUE) < 0) seq(-20, 100, 20) else seq(0, 100, 20)
+  }
+  if (is.null(virus)) {
+    stripe_colors <- "#22222222"
+  } else {
+    virus_color <- switch(virus, COVID = "#90B28430", RSV = "#7295B430", Influenza = "#F5D46F50")
+    stripe_colors <- c(virus_color, rep_len("#22222222", length.out = nrow(x)))
+  }
+  out <- plot_forest(
+    x,
+    estimate = "estimate",
+    lower = "lower",
+    upper = "upper",
+    y_var = "study_label",
+    point_color_var = "is_meta",
+    point_color = colors,
+    point_border_thickness = point_border_thickness,
+    point_border_color = point_border_color,
+    x_axis_title = "Vaccine effectiveness (%)",
+    aspect_ratio = ratio,
+    x_axis_breaks = x_axis_breaks,
+    odd_stripe_colors = rep_len(stripe_colors, length.out = nrow(x)),
+    even_stripe_colors = rep_len("#FFFFFF00", length.out = nrow(x)),
+    y_axis_labels = NULL,
+    ordering_var = ordering_var,
+    base_size = base_size,
+    point_size = point_size,
+    ...
+  )
+  pop_title <- switch(
+    population,
+    Elder = "Older adults",
+    Adults = "Adults",
+    `Adult/Elder` = "All adults",
+    `Infant/Child` = "Infants/children",
+    Infant = "Infants",
+    Child = "Children",
+    population
+  )
+  title <- paste(virus, pop_title, outcome, study_design, sep = "\n")
+  out <- out + ggplot2::ggtitle(title)
+  out <- add_column_table(
+    out,
+    plot_margin = ggplot2::margin(),
+    right_cols = list("Estimate (95% CI)" = ".estimate_label"),
+    left_cols = list(Study = ".y_var"),
+    left_args = list(label_hjust = 1)
+  )
+  out <- reorder_y_axis(out, dplyr::desc(.x))
+  if (show_het) {
+    .add_het_anno <- function(plot, data = NULL, size = 12/.pt, x_pos = -1, y_pos = c(-0.1, -0.2, -0.3, -0.4), header = NULL, long = FALSE, show_tau = FALSE) {
+      data <- data %||% plot@data
+      data <- data[data$is_meta, , drop = FALSE]
+      label <- .format_heterogeneity_label(
+        i2 = data$I2_estimate[1L],
+        tau2 = data$tau2_estimate[1L],
+        p = data$p_het[1L],
+        sep = NULL
+      )
+      if (!show_tau) {
+        label <- label[-3L]
+      }
+      if (long) {
+        label[1L] <- header %||% "underline('Heterogeneity:')"
+        label <- paste0(label, collapse = "~")
+        n <- length(label)
+        x_pos <- rep_len(x_pos, length.out = n)
+        y_pos <- rep_len(y_pos, length.out = n)
+        plot[[2L]] <- plot[[2L]] + ggplot2::annotate(
+          geom = "text",
+          size = size,
+          x = I(x_pos), y = I(y_pos),
+          label = label,
+          hjust = 0, vjust = 0.5,
+          parse = TRUE
+        )
+      } else {
+        label[1L] <- header %||% "'Heterogeneity:'"
+        label <- paste0(label, collapse = "~")
+        n <- length(label)
+        x_pos <- rep_len(x_pos, length.out = n)
+        y_pos <- rep_len(y_pos, length.out = n)
+        plot[[2L]] <- plot[[2L]] + ggplot2::annotate(
+          geom = "text",
+          size = size,
+          x = I(x_pos[1L]), y = I(y_pos[1L]),
+          label = label,
+          hjust = 0, vjust = 0.5,
+          parse = TRUE
+        )
+      }
+      plot
+    }
+    out <- .add_het_anno(out)
+  }
+  out
 }
