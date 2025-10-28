@@ -556,7 +556,7 @@ metaAnalysisServer <- function(
       input$virus
       #plot_static()
       g <- data.frame(a = 1:5, b = 1:5)
-      g1 <- ggplot2::ggplot(g, ggplot2::aes(a, b)) + geom_point()
+      g1 <- ggplot2::ggplot(g, ggplot2::aes(a, b)) + ggplot2::geom_point()
       #plot(1:5, 1:5)
       patchwork::wrap_plots(c(list(g1), list(g1)), widths = c(0.25, 0.75))
     })
