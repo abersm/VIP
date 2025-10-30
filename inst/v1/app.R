@@ -1,4 +1,4 @@
-gihub_token_set()
+#gihub_token_set()
 devtools::install_github("abersm/VIP")
 library(ggplot2)
 library(patchwork)
