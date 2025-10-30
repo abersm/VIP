@@ -594,12 +594,10 @@ metaAnalysisServer <- function(
     `Low ROB analysis` = c("Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "Yes")
   )
   meta_options$id <- rev(seq_len(nrow(meta_options)))
-  plot_meta_toc <- meta_options |>
-    tidyr::pivot_longer(cols = -"id") |>
-    mutate(
-      name = factor(name, levels = c("Virus", "Population", "Outcome", "Study design", "Low ROB analysis"))
-    ) |>
-    ggplot2::ggplot(ggplot2::aes(x = name, y = id, label = value)) +
+  plot_meta_toc <- tidyr::pivot_longer(meta_options, cols = -"id")
+  plot_meta_toc$name <- factor(plot_meta_toc$name, levels = c("Virus", "Population", "Outcome", "Study design", "Low ROB analysis"))
+  blank <- ggplot2::element_blank()
+  plot_meta_toc <- ggplot2::ggplot(plot_meta_toc, ggplot2::aes(x = name, y = id, label = value)) +
     geom_stripes(
       odd = rep_len(rep(c("#F1C23230", "#36689530", "#61915030"), times = c(5, 3, 2)), length.out = 95L),
       trim = FALSE
@@ -608,14 +606,14 @@ metaAnalysisServer <- function(
     ggplot2::scale_x_discrete(position = "top") +
     theme_vip(ratio = 0.6, base_size = 8) +
     ggplot2::theme(
-      axis.title.x = ggplot2::element_blank(),
-      axis.title.y = ggplot2::element_blank(),
-      axis.text.y = ggplot2::element_blank(),
+      axis.title.x = blank,
+      axis.title.y = blank,
+      axis.text.y = blank,
       axis.text.x = ggplot2::element_text(size = 10, face = "bold"),
-      axis.ticks.x = ggplot2::element_blank(),
-      axis.ticks.y = ggplot2::element_blank(),
-      axis.line.x = ggplot2::element_blank(),
-      axis.line.y = ggplot2::element_blank()
+      axis.ticks.x = blank,
+      axis.ticks.y = blank,
+      axis.line.x = blank,
+      axis.line.y = blank
     )
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
