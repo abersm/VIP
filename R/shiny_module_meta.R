@@ -78,7 +78,7 @@ metaAnalysisUI <- function(
 
   ## Population
   pop_options <- c("Pregnancy", "Infant/Child", "Infant", "Child", "Adult/Elder", "Adult", "Elder", "Immunocompromised")
-  names(pop_options) <- c("Pregnancy", "Infants/Children", "Infants", "Children", "All adults", "Adults", "Older adults", "Immunocomp.")
+  names(pop_options) <- c("Pregnancy", "Infants/Children", "Infants", "Children", "All adults", "Younger adults", "Older adults", "Immunocomp.")
   population_options <- popover_btn(
     icon = shiny::icon("person", verify_fa = FALSE),
     title = "Select population",
@@ -640,7 +640,7 @@ metaAnalysisServer <- function(
         plot_meta_toc +
           #ggplot2::ggplot() + ggplot2::theme_minimal() +
           ggplot2::theme(title = ggplot2::element_text(size = 10, color = "#A63B86", vjust = 0.5, hjust = 0)) +
-          ggplot2::ggtitle(sprintf("Insufficient number of studies to perform a meta-analysis for the specified inputs:\n\nVirus = %s\nPopulation = %s\nOutcome = %s\nStudy design = %s\n\nSee below for a list of meta-analyses performed.\n", input$virus, c("Pregnancy", "Infants", "Children", "Infants/children", "Adults", "Older adults", "All adults", "Immunocompromised")[idx], input$outcome, input$study_design))
+          ggplot2::ggtitle(sprintf("Insufficient number of studies to perform a meta-analysis for the specified inputs:\n\nVirus = %s\nPopulation = %s\nOutcome = %s\nStudy design = %s\n\nSee below for a list of meta-analyses performed.\n", input$virus, c("Pregnancy", "Infants", "Children", "Infants/children", "Younger adults", "Older adults", "All adults", "Immunocompromised")[idx], input$outcome, input$study_design))
       })
     })
 
@@ -751,7 +751,7 @@ metaAnalysisServer <- function(
     Infant = "Infants",
     Child = "Children",
     `Infant/Child` = "Infants/children",
-    Adult = "Adults",
+    Adult = "Younger adults",
     Elder = "Older adults",
     `Adult/Elder` = "All adults",
     Immunocompromised = "Immunocompromised"
@@ -857,7 +857,7 @@ metaAnalysisServer <- function(
   pop_title <- switch(
     population,
     Elder = "Older adults",
-    Adult = "Adults",
+    Adult = "Younger adults",
     `Adult/Elder` = "All adults",
     `Infant/Child` = "Infants/children",
     Infant = "Infants",
