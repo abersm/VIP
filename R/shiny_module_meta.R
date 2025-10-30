@@ -547,11 +547,12 @@ metaAnalysisUI <- function(
       shiny::tag("hr", list(style = "border:0.5px dashed black;opacity:0.8;"), .noWS = NULL, .renderHook = NULL),
       font_size_ui,
       shiny::tag("hr", list(style = "border:0.5px dashed black;opacity:0.8;"), .noWS = NULL, .renderHook = NULL),
-      switchInput(ns("show_heterogeneity"), label = shiny::tags$strong("Show heterogeneity", style = sprintf("color:%s;", primary_color)), value = FALSE, on_color = primary_color),
+      #switchInput(ns("show_heterogeneity"), label = shiny::tags$strong("Show heterogeneity", style = sprintf("color:%s;", primary_color)), value = FALSE, on_color = primary_color),
       if (show_legend_switch) switchInput(ns("show_legend"), label = shiny::tags$strong("Show legend", style = sprintf("color:%s;", primary_color)), value = FALSE, on_color = primary_color)
     ),
     #abers::debug_editorUI(id = ns("debug")),
-    plot_card(plot_output)
+    plot_card(plot_output),
+    switchInput(ns("show_heterogeneity"), label = shiny::tags$strong("Show heterogeneity", style = sprintf("color:%s;", primary_color)), value = FALSE, on_color = primary_color)
     # shiny::conditionalPanel(
     #   condition = "input.make_plot_interactive === false",
     #   plot_card(plot_output),
