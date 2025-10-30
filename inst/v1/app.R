@@ -249,6 +249,7 @@ landing_page_text <- bslib::card(
   shiny::tags$p(shiny::tags$strong("Questions/comments/concerns about this application? Please e-mail Michael Abers at abersm@gmail.com", style = sprintf("color:%s;", secondary_color))),
   shiny::tags$a("Project homepage", href = "https://www.cidrap.umn.edu/vaccine-integrity-project", style = "color:#0276C2;"),
   shiny::tags$a("YouTube link to presentation", href = "https://www.youtube.com/watch?v=lSuvGlxqrpg", style = "color:#0276C2;"),
+  shiny::tags$a("Systematic review and meta-analysis published in NEJM", href = "https://www.nejm.org/doi/10.1056/NEJMsa2514268", style = "color:#0276C2;"),
   shiny::tags$h2(shiny::tags$strong("About the Vaccine Integrity Project:", style = sprintf("color:%s;", primary_color))),
   shiny::tags$p("CIDRAP's Vaccine Integrity Project is an initiative dedicated to safeguarding vaccine use in the U.S. so that it remains grounded in the best available science, free from external influence, and focused on optimizing protection of individuals, families, and communities against vaccine-preventable diseases."),
   shiny::tags$p("The Vaccine Integrity Project issued its final report from the planning phase summarizing its findings from the exploratory phase, focused on what is needed to ensure the integrity of the U.S. vaccine system, including vaccine evaluations and clinical guidelines based on rigorous and timely reviews."),
@@ -256,7 +257,7 @@ landing_page_text <- bslib::card(
     "The Vaccine Integrity Project is focusing on actions that stemmed from its earlier work:",
     shiny::tags$li(shiny::tags$strong("Implementing a rapid response accountability effort."), " In response to misleading and inaccurate claims, the Vaccine Integrity Project aims to launch a rapid response communications initiative to monitor and address vaccine- and public health-related misinformation originating from official, federal sources in real time."),
     shiny::tags$li(shiny::tags$strong("Developing and disseminating the evidence base for immunization recommendations and clinical consideration."), " Engaging with healthcare providers, the public health community, and medical societies, CIDRAP is leading a comprehensive review of scientific evidence to inform immunization recommendations so that clinicians have evidence-backed guidance on the key immunizations for all ages on COVID, RSV, and influenza heading into respiratory virus season."),
-    shiny::tags$li(shiny::tags$strong("Fostering continued collaboration and visibility."), " This work is far from over, and no single organization can operate in isolation. The scale and complexity of the challenges ahead demand ongoing collaboration and coordinated action across the ecosystem. Regular convening will support better alignment, reduce duplication, and help prioritize and address emerging issues in real time.")
+    shiny::tags$li(shiny::tags$strong("Fostering continued collaboration and visibility."), " No single organization can operate in isolation. The scale and complexity of the challenges ahead demand ongoing collaboration and coordinated action across the ecosystem. Regular convening will support better alignment, reduce duplication, and help prioritize and address emerging issues in real time.")
   )
 )
 
