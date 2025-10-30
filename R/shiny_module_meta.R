@@ -1,7 +1,7 @@
 #' UI for meta-analysis module
 #'
 #' @inheritParams crosstableUI
-#' @param slider_color,switch_color Color for slider and switch
+#' @param slider_color Color for slider and switch
 #' @param id_export_plot_btn ID for export plot button. Default is `"export_plot_btn"`
 #' @returns Enter as input to UI
 #' @export
@@ -46,15 +46,14 @@ metaAnalysisUI <- function(
 
   # Plot style controls in sidebar
   interactive_switch <- switchInput(
-    inputId = ns("make_plot_interactive"),
+    ns("make_plot_interactive"),
+    #on_color = primary_color, off_color = .clr_alpha_filter(primary_color, 0.1)
     label = "Interactive",
-    value = FALSE,
-    on_color = primary_color,
-    off_color = .clr_alpha_filter(primary_color, 0.1)
+    value = FALSE
   )
   font_size_ui <- incrementorInput(
     inputId = ns("base_size"),
-    label = "Font size",
+    label = shiny::tags$strong("Font size", style = sprintf("color:%s;font-weight:bolder;", incrementor_button_color)),
     button_color = incrementor_button_color,
     button_text_color = .clr_text(incrementor_button_color),
     min = 0,
@@ -124,7 +123,7 @@ metaAnalysisUI <- function(
     title = "Select risk of bias",
     hover_text = "Risk of bias",
     switchInput(
-      inputId = ns("rob"),
+      ns("rob"),
       label = "Low risk of bias only",
       on_color = primary_color,
       value = FALSE
@@ -134,7 +133,7 @@ metaAnalysisUI <- function(
   # Plot export settings
   plot_width <- incrementorInput(
     inputId = ns("export_plot_width"),
-    label = "Width (in)",
+    label = "Width (inches)",
     font_size = 12,
     button_color = primary_color,
     button_text_color = .clr_text(primary_color),
@@ -142,7 +141,7 @@ metaAnalysisUI <- function(
   )
   plot_height <- incrementorInput(
     inputId = ns("export_plot_height"),
-    label = "Height (in)",
+    label = "Height (inches)",
     font_size = 12,
     button_color = primary_color,
     button_text_color = .clr_text(primary_color),
@@ -150,7 +149,7 @@ metaAnalysisUI <- function(
   )
   plot_dpi <- incrementorInput(
     inputId = ns("export_plot_dpi"),
-    label = "dpi",
+    label = "Dots per inch (dpi)",
     font_size = 12,
     button_color = primary_color,
     button_text_color = .clr_text(primary_color),
@@ -477,8 +476,61 @@ metaAnalysisUI <- function(
     )
   }
 
+  # Meta-analyisis table of contents
+  meta_toc <- shiny::tags$button(
+    id = ns("meta_toc"),
+    type = "button",
+    class = "btn rounded-pill action-button",
+    `data-val` = NULL,
+    list(shiny::icon("table-list", verify_fa = FALSE), "Table of contents"),
+    style = sprintf("background-color:%s;color:%s;", secondary_color, .clr_text(secondary_color))
+  )
+  #meta_toc <- bslib::popover(
+  #  title = "Meta-analyses performed",
+  #  trigger = meta_toc,
+  #  placement = "right",
+  #  shiny::plotOutput(ns("plot_toc"))
+  #)
+
+  # Modal window style
+  css_modal <- shiny::tags$head(
+    shiny::tags$style(
+      shiny::HTML("
+      .modal-xl {
+        max-width: 90% !important;
+        min-width: 400px !important;
+      }
+      @media (min-width: 1200px) {
+        .modal-xl {
+          max-width: 1140px !important;
+          min-width: 400px !important;
+        }
+      }
+      @media (max-width: 450px) {
+        .modal {
+          overflow-x: auto !important;
+        }
+        .modal-dialog {
+          margin: 10px !important;
+          min-width: 400px !important;
+          width: 400px !important;
+        }
+        .modal-content {
+          min-width: 400px !important;
+        }
+      }
+      .modal-body {
+        min-width: 0;
+      }
+      .modal-body .row {
+        min-width: 350px;
+      }")
+    )
+  )
+
   # UI
   bslib::layout_sidebar(
+    css_modal,
     shiny::tags$head(shiny::tags$style(shiny::HTML(sprintf(".irs--shiny .irs-bar{border-top:1px solid %s;border-bottom:1px solid %s;background:%s;}.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single{background-color:%s;}.irs--shiny .irs-handle{background-color:%s;}", slider_color, slider_color, slider_color, slider_color, slider_color)))),
     css_resizer,
     js_resizer,
@@ -491,9 +543,12 @@ metaAnalysisUI <- function(
     sidebar = bslib::sidebar(
       open = sidebar_open,
       width = sidebar_width,
-      shiny::h5("Font size", style = sprintf("color:%s;font-weight:bolder;", primary_color)),
+      meta_toc,
+      shiny::tag("hr", list(style = "border:0.5px dashed black;opacity:0.8;"), .noWS = NULL, .renderHook = NULL),
       font_size_ui,
-      if (show_legend_switch) switchInput(inputId = ns("show_legend"), label = shiny::tags$strong("Show legend", style = sprintf("color:%s;", primary_color)), value = FALSE, on_color = switch_color)
+      shiny::tag("hr", list(style = "border:0.5px dashed black;opacity:0.8;"), .noWS = NULL, .renderHook = NULL),
+      switchInput(ns("show_heterogeneity"), label = shiny::tags$strong("Show heterogeneity", style = sprintf("color:%s;", primary_color)), value = FALSE, on_color = primary_color),
+      if (show_legend_switch) switchInput(ns("show_legend"), label = shiny::tags$strong("Show legend", style = sprintf("color:%s;", primary_color)), value = FALSE, on_color = primary_color)
     ),
     #abers::debug_editorUI(id = ns("debug")),
     plot_card(plot_output)
@@ -530,12 +585,44 @@ metaAnalysisServer <- function(
     stop("meta must be a data frame", call. = FALSE)
   }
   #`%#%` <- function(x, y) if (is.null(x) || !is.numeric(x)) y else x
+  meta_options <- vec2df(
+    Virus = rep(c("COVID", "RSV", "Influenza"), times = c(4, 6, 9)),
+    Population = c("All adults", "All adults", "Older adults", "Immunocompromised", "Pregnancy", "Infants", "Infants", "Infants", "Infants", "Older adults", "Children", "Infants/Children", "Infants/Children", "Younger adults", "Younger adults", "Older adults", "Older adults", "All adults", "All adults"),
+    Outcome = c("Hospitalization", "Hospitalization", "Hospitalization", "Hospitalization", "Hospitalization", "Hospitalization", "Hospitalization", "ICU admission", "Medically-attended infection", "Hospitalization", "Medically-attended infection", "Hospitalization", "Medically-attended infection", "Hospitalization", "Medically-attended infection", "Hospitalization", "Medically-attended infection", "Hospitalization", "Medically-attended infection"),
+    `Study design` = c("Case-control", "Cohort", "Cohort", "Case-control", "Case-control", "Case-control", "Cohort", "Cohort", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control"),
+    `Low ROB analysis` = c("Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "Yes")
+  )
+  meta_options$id <- rev(seq_len(nrow(meta_options)))
+  plot_meta_toc <- meta_options |>
+    tidyr::pivot_longer(cols = -"id") |>
+    mutate(
+      name = factor(name, levels = c("Virus", "Population", "Outcome", "Study design", "Low ROB analysis"))
+    ) |>
+    ggplot2::ggplot(ggplot2::aes(x = name, y = id, label = value)) +
+    geom_stripes(
+      odd = rep_len(rep(c("#F1C23230", "#36689530", "#61915030"), times = c(5, 3, 2)), length.out = 95L),
+      trim = FALSE
+    ) +
+    ggplot2::geom_text() +
+    ggplot2::scale_x_discrete(position = "top") +
+    theme_vip(ratio = 0.6, base_size = 8) +
+    ggplot2::theme(
+      axis.title.x = ggplot2::element_blank(),
+      axis.title.y = ggplot2::element_blank(),
+      axis.text.y = ggplot2::element_blank(),
+      axis.text.x = ggplot2::element_text(size = 10, face = "bold"),
+      axis.ticks.x = ggplot2::element_blank(),
+      axis.ticks.y = ggplot2::element_blank(),
+      axis.line.x = ggplot2::element_blank(),
+      axis.line.y = ggplot2::element_blank()
+    )
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
     # Create plot
     plot_static <- shiny::reactive({
       data_all <- .prepare_meta_analysis_data(raw_data, meta, virus = input$virus, population = input$population, outcome = input$outcome, input$study_design, low_rob = input$rob)
-      tryElse(
+      tryCatch({
         .plot_ve(
           data_all,
           virus = input$virus,
@@ -543,22 +630,32 @@ metaAnalysisServer <- function(
           outcome = input$outcome,
           study_design = input$study_design,
           low_rob = input$rob,
+          show_het = input$show_heterogeneity,
           #show_legend = input$show_legend %||% FALSE,
           #aspect_ratio = input$aspect_ratio %#% NULL,
           base_size = input$base_size
         )
-      )
+      }, error = function(e) {
+        idx <- match(input$population, c("Pregnancy", "Infant", "Child", "Infant/Child", "Adult", "Elder", "Adult/Elder", "Immunocompromised"), nomatch = 0L)
+        plot_meta_toc +
+          #ggplot2::ggplot() + ggplot2::theme_minimal() +
+          ggplot2::theme(title = ggplot2::element_text(size = 10, color = "#A63B86", vjust = 0.5, hjust = 0)) +
+          ggplot2::ggtitle(sprintf("Insufficient number of studies to perform a meta-analysis for the specified inputs:\n\nVirus = %s\nPopulation = %s\nOutcome = %s\nStudy design = %s\n\nSee below for a list of available meta-analyses.\n\n", input$virus, c("Pregnancy", "Infants", "Children", "Infants/children", "Adults", "Older adults", "All adults", "Immunocompromised")[idx], input$outcome, input$study_design))
+      })
+    })
+
+    # Show table of contents
+    shiny::observeEvent(input$meta_toc, {
+      shiny::showModal(shiny::modalDialog(shiny::plotOutput(ns("plot_toc")), size = "xl", easyClose = TRUE, title = "Meta-analyses options"))
+    })
+    output$plot_toc <- shiny::renderPlot({
+      plot_meta_toc
     })
 
     # Plot output
     ## Static plot (non-interactive)
     output$plot <- shiny::renderPlot({
-      #input$virus
       plot_static()
-      #g <- data.frame(a = 1:5, b = 1:5)
-      #g1 <- ggplot2::ggplot(g, ggplot2::aes(a, b)) + ggplot2::geom_point()
-      #plot(1:5, 1:5)
-      #patchwork::wrap_plots(c(list(g1), list(g1)), widths = c(0.25, 0.75))
     })
     ## Interactive plot
     #output$plotly <- plotly::renderPlotly({
@@ -650,14 +747,14 @@ metaAnalysisServer <- function(
     study_design = NULL,
     low_rob = NULL) {
   pop_labels <- c(
-    Elder = "Older adults",
-    Adults = "Adults",
-    `Adult/Elder` = "All adults",
-    `Infant/Child` = "Infants/children",
+    Pregnancy = "Pregnancy",
     Infant = "Infants",
     Child = "Children",
-    Immunocompromised = "Immunocompromised",
-    Pregnancy = "Pregnancy"
+    `Infant/Child` = "Infants/children",
+    Adult = "Adults",
+    Elder = "Older adults",
+    `Adult/Elder` = "All adults",
+    Immunocompromised = "Immunocompromised"
   )
   virus <- virus %||% c("COVID", "RSV", "Influenza")
   population <- population %||% c("Pregnancy", "Infant", "Child", "Infant/Child", "Adult", "Elder", "Adult/Elder", "Immunocompromised")
@@ -760,7 +857,7 @@ metaAnalysisServer <- function(
   pop_title <- switch(
     population,
     Elder = "Older adults",
-    Adults = "Adults",
+    Adult = "Adults",
     `Adult/Elder` = "All adults",
     `Infant/Child` = "Infants/children",
     Infant = "Infants",

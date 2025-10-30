@@ -1,4 +1,8 @@
-devtools::install_github("abersm/VIP")
+#gihub_token_set()
+#devtools::install_github("abersm/VIP")
+library(ggplot2)
+library(patchwork)
+library(VIP)
 
 # Functions ---------------------------------------------------------------
 
@@ -19,53 +23,41 @@ get_click_position <- function(x) {
   )
 }
 
-popover_btn <- function(
-    ...,
-    icon = NULL,
-    color = "#00498F",
-    hover_text = "",
-    title = "") {
-  btn <- shiny::tags$button(
-    #id = inputId,
-    type = "button",
-    `data-val` = NULL,
-    #class = "btn btn-default action-button btn-circle-sm",
-    class = "btn action-button",
-    #shiny::tags$style(shiny::HTML(".btn.btn-circle-sm{width:25px;height:25px;text-align:center;padding:1.5px 0;font-size:25px;line-height:30%;border-radius:30px;outline:none;}")),
-    style = sprintf("width:30px;height:30px;text-align:center;padding:2px 0;font-size:18px;line-height:50%%;border-radius:30px;outline:none;color:white;background:%s;", color),
-    shiny::tags$span(icon)
-  )
-  btn <- shiny::tagList(shiny::tagAppendAttributes(btn, title = shiny::HTML(hover_text), `data-bs-toggle` = "tooltip", `data-bs-html` = "true", `data-bs-placement` = "auto"))
-  bslib::popover(
-    title = title,
-    trigger = btn,
-    placement = "right",
-    ...
-  )
-}
-
 # Data --------------------------------------------------------------------
 
 # Upload data
 # Note: downloaded data from app contain 1 fewer studies that were included because Yunker 2024 is an epi only study that did not report a patient population
 #setdiff(VIP::df_shiny$article, vip$article) where vip is the downloaded data from the app
-data <- utils::read.csv(system.file("v1", "df_shiny.csv", package = "VIP"))
-rownames(data) <- NULL
+data_studies <- utils::read.csv(system.file("v1", "df_shiny.csv", package = "VIP"))
+rownames(data_studies) <- NULL
 
 # Create clickable link to article
-#data$article <- paste0('<a href="', utils::URLdecode(data$link), '" target="_blank">', data$article, "</a>")
-data$article <- paste0('<a href="', data$link, '" target="_blank">', data$article, "</a>")
+#data_studies$article <- paste0('<a href="', utils::URLdecode(data_studies$link), '" target="_blank">', data_studies$article, "</a>")
+data_studies$article <- paste0('<a href="', data_studies$link, '" target="_blank">', data_studies$article, "</a>")
 
 # Reorder columns
-data <- data[unique(c("article", "virus", "population", "journal", "rob", "pmid", "pmcid", "doi", setdiff(names(data), c("infant", "child", "adult", "elder", "preg", "immunocomp", "published_year", "covid", "rsv", "flu", "id_redcap", "id_covidence", "title", "link")), "link"))]
+data_studies <- data_studies[unique(c("article", "virus", "population", "journal", "rob", "pmid", "pmcid", "doi", setdiff(names(data_studies), c("infant", "child", "adult", "elder", "preg", "immunocomp", "published_year", "covid", "rsv", "flu", "id_redcap", "id_covidence", "title", "link")), "link"))]
 
 # Edit levels
 pop_levels <- c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
-data$population[data$population == "Pediatric"] <- "Pediatrics"
-data$population[data$population == "Adult"] <- "Adults"
-data$population[data$population == "Pregnant"] <- "Pregnancy"
-data$population[data$population == "Immunocomp"] <- "Immunocomp."
-data$population <- factor(data$population, levels = rev(pop_levels))
+data_studies$population[data_studies$population == "Pediatric"] <- "Pediatrics"
+data_studies$population[data_studies$population == "Adult"] <- "Adults"
+data_studies$population[data_studies$population == "Pregnant"] <- "Pregnancy"
+data_studies$population[data_studies$population == "Immunocomp"] <- "Immunocomp."
+data_studies$population <- factor(data_studies$population, levels = rev(pop_levels))
+
+# Meta-analysis data
+## Raw data
+#meta_raw <- VIP::ve_meta_raw
+meta_raw <- utils::read.csv(system.file("v1", "meta_raw.csv", package = "VIP"))
+#data("ve_meta_raw", package = "VIP")
+#meta_raw <- ve_meta_raw
+
+## Meta-analysis results
+#meta <- VIP::ve_meta
+meta <- utils::read.csv(system.file("v1", "meta.csv", package = "VIP"))
+#data("ve_meta", package = "VIP")
+#meta <- ve_meta
 
 # Style --------------------------------------------------------------------
 primary_color <- "#246A87"
@@ -290,7 +282,7 @@ reset_btn <- shiny::tagList(shiny::tagAppendAttributes(reset_btn, title = shiny:
 #  viewbox = "0 0 16 16",
 #  shiny::tags$path(d = "M8 0a1 1 0 0 0-1 1v1.143c0 .557-.407 1.025-.921 1.24-.514.214-1.12.162-1.513-.231l-.809-.809a1 1 0 1 #0-1.414 1.414l.809.809c.394.394.445.999.23 1.513C3.169 6.593 2.7 7 2.144 7H1a1 1 0 0 0 0 2h1.143c.557 0 1.025.407 1.24.921#.214.514.163 1.12-.231 1.513l-.809.809a1 1 0 0 0 1.414 1.414l.809-.809c.394-.394.999-.445 1.513-.23.514.214.921.682.921 1#.24V15a1 1 0 1 0 2 0v-1.143c0-.557.407-1.025.921-1.24.514-.214 1.12-.162 1.513.231l.809.809a1 1 0 0 0 1.414-1.414l-.809#-.809c-.393-.394-.445-.999-.23-1.513.214-.514.682-.921 1.24-.921H15a1 1 0 1 0 0-2h-1.143c-.557 0-1.025-.407-1.24-.921-.214#-.514-.162-1.12.231-1.513l.809-.809a1 1 0 0 0-1.414-1.414l-.809.809c-.394.393-.999.445-1.513.23-.514-.214-.92-.682-.92-1#.24V1a1 1 0 0 0-1-1Zm2 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0M7 7a1 1 0 1 1-2 0 1 1 0 0 1 2 0m1 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2m4-4a1 1 #0 1 1-2 0 1 1 0 0 1 2 0")
 #)
-virus_options <- popover_btn(
+virus_options <- VIP::popover_btn(
   icon = shiny::icon("virus"),
   title = "Select virus",
   hover_text = "Virus",
@@ -317,7 +309,7 @@ virus_options <- popover_btn(
 #  fill = "white",
 #  shiny::tags$path(d = "M248 24a56 56 0 1 0 -112 0 56 56 0 1 0 112 0zm24 212.7l46.3 62.4c10.5 14.2 30.6 17.2 44.8 6.6s17.2#-30.6 6.6-44.8l-70.5-95C274 132 234.3 112 192 112s-82 20-107.2 53.9l-70.5 95c-10.5 14.2-7.6 34.2 6.6 44.8s34.2 7.6 44.8-6#.6L112 236.7 112 512c0 17.7 14.3 32 32 32s32-14.3 32-32l0-160c0-8.8 7.2-16 16-16s16 7.2 16 16l0 160c0 17.7 14.3 32 32 32s32#-14.3 32-32l0-275.3z")
 #)
-population_options <- popover_btn(
+population_options <- VIP::popover_btn(
   icon = shiny::icon("person"),
   title = "Select population",
   hover_text = "Population",
@@ -339,7 +331,7 @@ population_options <- popover_btn(
 #  viewbox = "0 0 16 16",
 #  shiny::tags$path(d = "M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85#-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0")
 #)
-design_options <- popover_btn(
+design_options <- VIP::popover_btn(
   icon = shiny::icon("magnifying-glass"),
   title = "Select study design",
   hover_text = "Study design",
@@ -358,7 +350,7 @@ design_options <- popover_btn(
 #  fill = "white",
 #  shiny::tags$path(d = "M245.9-25.9c-13.4-8.2-30.3-8.2-43.7 0-24.4 14.9-39.5 18.9-68.1 18.3-15.7-.4-30.3 8.1-37.9 21.9-13.7 #25.1-24.8 36.2-49.9 49.9-13.8 7.5-22.2 22.2-21.9 37.9 .7 28.6-3.4 43.7-18.3 68.1-8.2 13.4-8.2 30.3 0 43.7 14.9 24.4 18.9 39#.5 18.3 68.1-.4 15.7 8.1 30.3 21.9 37.9 22.1 12.1 33.3 22.1 45.1 41.5L42.7 458.5c-5.9 11.9-1.1 26.3 10.7 32.2l86 43c11.5 5.7 #25.5 1.4 31.7-9.8l52.8-95.1 52.8 95.1c6.2 11.2 20.2 15.6 31.7 9.8l86-43c11.9-5.9 16.7-20.3 10.7-32.2l-48.6-97.2c11.7-19.4 23#-29.4 45.1-41.5 13.8-7.5 22.2-22.2 21.9-37.9-.7-28.6 3.4-43.7 18.3-68.1 8.2-13.4 8.2-30.3 0-43.7-14.9-24.4-18.9-39.5-18.3-68#.1 .4-15.7-8.1-30.3-21.9-37.9-25.1-13.7-36.2-24.8-49.9-49.9-7.5-13.8-22.2-22.2-37.9-21.9-28.6 .7-43.7-3.4-68.1-18.3zM224 #96a96 96 0 1 1 0 192 96 96 0 1 1 0-192z")
 #)
-rob_options <- popover_btn(
+rob_options <- VIP::popover_btn(
   icon = shiny::icon("award"),
   title = "Select risk of bias",
   hover_text = "Risk of bias",
@@ -372,8 +364,6 @@ rob_options <- popover_btn(
 
 # Button group
 plot_btns <- shiny::div(
-  #class = "btn-group btn-group-vertical me-2",
-  #class = "btn-group btn-group-vertical",
   class = "btn-group btn-group",
   role = "group",
   style = "gap:2px;float:right;",
@@ -394,6 +384,36 @@ ui <- function(request) {
     title = "Vaccine Integrity Project",
     theme = bslib::bs_theme(
       version = 5,
+      base_font = c(
+        # Modern system fonts (iOS 9+, macOS 10.11+)
+        "-apple-system",
+        # Chrome on macOS, Safari on macOS
+        "BlinkMacSystemFont",
+        # Windows 10+
+        "Segoe UI",
+        # Android 4.0+
+        "Roboto",
+        # Older macOS versions
+        "Helvetica Neue",
+        # Windows (older versions)
+        "Arial",
+        # Linux and other systems
+        "Noto Sans",
+        "Liberation Sans",
+        # Fallbacks
+        "sans-serif"
+      ),
+      heading_font = c(
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Roboto",
+        "Helvetica Neue",
+        "Arial",
+        "Noto Sans",
+        "Liberation Sans",
+        "sans-serif"
+      ),
       bg = "#FFFFFF",
       fg = primary_color,
       primary = primary_color,
@@ -427,7 +447,7 @@ ui <- function(request) {
         landing_page_text
       ),
 
-      # Overview tab ------------------------------------------------------------
+      # Studies tab -------------------------------------------------------------
       shiny::tabPanel(
         title = "Studies",
         icon = shiny::icon("book", verfiy_fa = FALSE),
@@ -437,13 +457,9 @@ ui <- function(request) {
             bslib::card(
               style = "border-color:black;",
               bslib::card_header(
-                #shiny::fluidRow(shiny::column(reset_btn, width = 3, align = "left"), shiny::column(plot_btns, width = 9, align = "right")),
                 plot_btns,
                 style = "background-color:#E5E5E5;border-color:black;"
               ),
-              # Vertical buttons
-              #shiny::fluidRow(shiny::column(reset_btn, shiny::plotOutput(outputId = "plot_studies", width = "340px", height = "400px", click = "plot_studies_click"), width = 11, align = "left"), shiny::column(plot_btns, width = 1, align = "right"))
-              #shiny::fluidRow(shiny::column(reset_btn, width = 3, align = "left"), shiny::column(plot_btns, width = 9, align = "right")),
               shiny::plotOutput(outputId = "plot_studies", width = "340px", height = "400px", click = "plot_studies_click")
             ),
             bslib::card(
@@ -451,24 +467,40 @@ ui <- function(request) {
               DT::DTOutput("table_studies")
             )
           )
-          #shiny::tags$h6("Note: data are subject to change", style = sprintf("color:%s;", secondary_color))
         )
+      ),
+      # Meta-analysis tab -------------------------------------------------------
+      shiny::tabPanel(
+        title = "Meta-analysis",
+        # Code from https://icons.getbootstrap.com/icons/bar-chart-steps/
+        icon = shiny::tags$svg(
+          xmlns = "http://www.w3.org/2000/svg",
+          width = "16",
+          height = "16",
+          fill = "currentColor",
+          class = "bi bi-bar-chart-steps",
+          viewbox = "0 0 16 16",
+          shiny::tags$path(d = "M.5 0a.5.5 0 0 1 .5.5v15a.5.5 0 0 1-1 0V.5A.5.5 0 0 1 .5 0M2 1.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5zm2 4a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5z")
+        ),
+        style = tab_style,
+        VIP::metaAnalysisUI("meta")
       )
     )
   )
 }
 
 # Server ------------------------------------------------------------------
+
 server <- function(input, output, session) {
-  plot_data <- shiny::reactiveVal(data)
-  table_data <- shiny::reactiveVal(data)
+  plot_data <- shiny::reactiveVal(data_studies)
+  table_data <- shiny::reactiveVal(data_studies)
   shiny::observeEvent(input$data_reset, {
     shiny::updateCheckboxGroupInput(inputId = "studies_virus", selected = c("COVID", "RSV", "Influenza"))
     shiny::updateCheckboxGroupInput(inputId = "studies_population", selected = c("Pregnancy", "Pediatrics", "Adults", "Immunocomp."))
     shiny::updateCheckboxGroupInput(inputId = "rob", selected = c("Low", "Moderate", "High"))
     shiny::updateCheckboxGroupInput(inputId = "study_design", selected = c("RCT", "Case-control", "Cohort", "Observational - other"))
-    plot_data(data)
-    table_data(data)
+    plot_data(data_studies)
+    table_data(data_studies)
   })
   studies_plot <- shiny::reactive({
     tryElse(
@@ -488,8 +520,8 @@ server <- function(input, output, session) {
     populations <- input$studies_population %||% c("Pregnancy", "Pediatrics", "Adults", "Immunocomp.")
     design <- input$study_design %||% c("RCT", "Case-control", "Cohort", "Observational - other")
     rob <- input$rob %||% c("Low", "Moderate", "High")
-    idx <- data$virus %in% viruses & data$population %in% populations & data$study_design %in% design & data$rob %in% rob
-    tmp_data <- data[idx, ]
+    idx <- data_studies$virus %in% viruses & data_studies$population %in% populations & data_studies$study_design %in% design & data_studies$rob %in% rob
+    tmp_data <- data_studies[idx, ]
     plot_data(tmp_data)
     table_data(tmp_data)
   })
@@ -556,6 +588,10 @@ server <- function(input, output, session) {
       border = "0.5px solid #CCC",
     )
   }, server = FALSE)
+
+  # Meta-analysis tab
+  plot_meta <- VIP::metaAnalysisServer("meta", raw_data = meta_raw, meta = meta)
+  #plot_meta <- VIP::metaAnalysisServer("meta")
 }
 
 shiny::shinyApp(ui, server, enableBookmarking = "url")

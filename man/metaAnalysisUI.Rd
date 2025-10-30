@@ -37,7 +37,7 @@ metaAnalysisUI(
 
 \item{primary_color, secondary_color}{Primary and secondary color used for bootstrap theme. Default is \code{"#A63B86"} for \code{secondary_color}}
 
-\item{slider_color, switch_color}{Color for slider and switch}
+\item{slider_color}{Color for slider and switch}
 
 \item{incrementor_button_color}{Color for incrementor button}
 

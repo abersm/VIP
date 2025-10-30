@@ -332,7 +332,7 @@ crosstableServer <- function(id, data, plotly_toolbar_buttons = "toImage") {
         tmp,
         extensions = "Buttons",
         options = list(
-          dom = "Bfrtip", # Places buttons (B) at the top
+          dom = "Bfrtip",
           buttons = c("copy", "csv", "excel", "pdf")
         )
       )
