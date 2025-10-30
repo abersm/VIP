@@ -588,14 +588,15 @@ metaAnalysisServer <- function(
   #`%#%` <- function(x, y) if (is.null(x) || !is.numeric(x)) y else x
   meta_options <- vec2df(
     Virus = rep(c("COVID", "RSV", "Influenza"), times = c(4, 6, 9)),
-    Population = c("All adults", "All adults", "Older adults", "Immunocompromised", "Pregnancy", "Infants", "Infants", "Infants", "Infants", "Older adults", "Children", "Infants/Children", "Infants/Children", "Younger adults", "Younger adults", "Older adults", "Older adults", "All adults", "All adults"),
-    Outcome = c("Hospitalization", "Hospitalization", "Hospitalization", "Hospitalization", "Hospitalization", "Hospitalization", "Hospitalization", "ICU admission", "Medically-attended infection", "Hospitalization", "Medically-attended infection", "Hospitalization", "Medically-attended infection", "Hospitalization", "Medically-attended infection", "Hospitalization", "Medically-attended infection", "Hospitalization", "Medically-attended infection"),
+    Population = c("All adults", "All adults", "Older adults", "Immunocomp.", "Pregnancy", "Infants", "Infants", "Infants", "Infants", "Older adults", "Children", "Infants/Children", "Infants/Children", "Younger adults", "Younger adults", "Older adults", "Older adults", "All adults", "All adults"),
+    Outcome = c(rep.int("Hospitalization", 7L), "ICU admission", rep.int(c("Medic.-attended infect.", "Hospitalization"), 5L), "Medic.-attended infect."),
     `Study design` = c("Case-control", "Cohort", "Cohort", "Case-control", "Case-control", "Case-control", "Cohort", "Cohort", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control", "Case-control"),
-    `Low ROB analysis` = c("Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "Yes")
+    `Low ROB\nsens. analysis` = c("Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "Yes")
   )
+  core_cols <- names(meta_options)
   meta_options$id <- rev(seq_len(nrow(meta_options)))
   plot_meta_toc <- tidyr::pivot_longer(meta_options, cols = -"id")
-  plot_meta_toc$name <- factor(plot_meta_toc$name, levels = c("Virus", "Population", "Outcome", "Study design", "Low ROB analysis"))
+  plot_meta_toc$name <- factor(plot_meta_toc$name, levels = core_cols)
   blank <- ggplot2::element_blank()
   plot_meta_toc <- ggplot2::ggplot(plot_meta_toc, ggplot2::aes(x = name, y = id, label = value)) +
     geom_stripes(
@@ -639,7 +640,7 @@ metaAnalysisServer <- function(
         plot_meta_toc +
           #ggplot2::ggplot() + ggplot2::theme_minimal() +
           ggplot2::theme(title = ggplot2::element_text(size = 10, color = "#A63B86", vjust = 0.5, hjust = 0)) +
-          ggplot2::ggtitle(sprintf("Insufficient number of studies to perform a meta-analysis for the specified inputs:\n\nVirus = %s\nPopulation = %s\nOutcome = %s\nStudy design = %s\n\nSee below for a list of available meta-analyses.\n\n", input$virus, c("Pregnancy", "Infants", "Children", "Infants/children", "Adults", "Older adults", "All adults", "Immunocompromised")[idx], input$outcome, input$study_design))
+          ggplot2::ggtitle(sprintf("Insufficient number of studies to perform a meta-analysis for the specified inputs:\n\nVirus = %s\nPopulation = %s\nOutcome = %s\nStudy design = %s\n\nSee below for a list of meta-analyses performed.\n", input$virus, c("Pregnancy", "Infants", "Children", "Infants/children", "Adults", "Older adults", "All adults", "Immunocompromised")[idx], input$outcome, input$study_design))
       })
     })
 
