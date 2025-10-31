@@ -20,7 +20,6 @@ metaAnalysisUI <- function(
     incrementor_button_color = primary_color,
     id_export_plot_btn = "export_plot_btn") {
   ns <- NS(id)
-  #resizer_color <- secondary_color
   resizer_color <- primary_color
 
   # Popover style
@@ -94,7 +93,7 @@ metaAnalysisUI <- function(
   ## Outcome
   outcome_options <- popover_btn(
     icon = shiny::icon("hospital", verify_fa = FALSE),
-    title = "Outcome",
+    title = "Select Outcome",
     hover_text = "Outcome",
     shiny::selectInput(
       inputId = ns("outcome"),
@@ -354,7 +353,17 @@ metaAnalysisUI <- function(
       .resizable-plot:hover .resize-handle:hover::before {
         opacity: 1;
       }
-    ", resizer_color, resizer_color, resizer_color, resizer_color, resizer_color
+    ",
+     # Plot border while dragging
+     resizer_color,
+     # Bottom righthand handle on hover
+     resizer_color,
+     # Border (bottom and right) of bottom righthand handle on hover
+     resizer_color,
+     # All handles while dragging
+     resizer_color,
+     # Border (bottom and right) of bottom righthand handle while dragging
+     resizer_color
         )
       )
     )
@@ -366,7 +375,7 @@ metaAnalysisUI <- function(
       let resizeType = '';
       let startX, startY, startWidth, startHeight;
       const container = $('%s');
-      // Handle horizontal resize
+      // Horizontal resize
       $('.resize-horizontal').on('mousedown', function(e) {
         isResizing = true;
         resizeType = 'horizontal';
@@ -376,7 +385,7 @@ metaAnalysisUI <- function(
         $('body').addClass('user-select-none');
         e.preventDefault();
       });
-      // Handle vertical resize
+      // Vertical resize
       $('.resize-vertical').on('mousedown', function(e) {
         isResizing = true;
         resizeType = 'vertical';
@@ -386,7 +395,7 @@ metaAnalysisUI <- function(
         $('body').addClass('user-select-none');
         e.preventDefault();
       });
-      // Handle diagonal resize
+      // Bottom righthand corner resize
       $('.resize-diagonal').on('mousedown', function(e) {
         isResizing = true;
         resizeType = 'diagonal';
@@ -398,7 +407,7 @@ metaAnalysisUI <- function(
         $('body').addClass('user-select-none');
         e.preventDefault();
       });
-      // Handle mouse move
+      // Mouse move
       $(document).on('mousemove', function(e) {
         if (!isResizing) return;
         if (resizeType === 'horizontal') {
@@ -416,7 +425,7 @@ metaAnalysisUI <- function(
           });
         }
       });
-      // Handle mouse up
+      // Mouse up
       $(document).on('mouseup', function() {
         if (isResizing) {
           isResizing = false;
@@ -428,7 +437,7 @@ metaAnalysisUI <- function(
           $(window).trigger('resize');
         }
       });
-      // Prevent text selection during resize
+      // Prevent text selection while resizing
       $(document).on('selectstart', function(e) {
         if (isResizing) {
           e.preventDefault();
@@ -437,7 +446,7 @@ metaAnalysisUI <- function(
     });
   ", paste0("#", ns("plot-container")))))
 
-  # JS to extract currrent dimensions of plot container after resizing
+  # JS to extract current plot dimensions
   js_get_plot_dim <- sprintf("
     $(document).on('click', '#%s', function() {
       const plotContainer = document.getElementById('%s');
@@ -448,10 +457,9 @@ metaAnalysisUI <- function(
         Shiny.setInputValue('%s', width, {priority: 'event'});
         Shiny.setInputValue('%s', height, {priority: 'event'});
       }
-    });",
-                             ns(id_export_plot_btn), ns("plot-container"), ns("resize_plot_width"), ns("resize_plot_height"))
+    });", ns(id_export_plot_btn), ns("plot-container"), ns("resize_plot_width"), ns("resize_plot_height"))
 
-  # Plot output contains
+  # Plot
   #plot_output <- shiny::plotOutput(outputId = ns("plot"), width = "340px", height = "400px")
   #plotly_output <- plotly::plotlyOutput(outputId = ns("plotly"), width = "340px", height = "400px")
   plot_output <- shiny::plotOutput(outputId = ns("plot"), width = "100%", height = "100%")
